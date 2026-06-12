@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html lang="ja" xml:lang="ja" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<meta http-equiv="Content-Language" content="ja" />
+<meta http-equiv="Content-Style-Type" content="text/css" />
+<meta http-equiv="Content-Script-Type" content="text/javascript" />
+<meta name="Author" content="社会保険診療報酬支払基金" />
+
+<link rel="stylesheet" type="text/css" media="all" href="/css/style.wysiwyg.css" />
+<link rel="stylesheet" type="text/css" media="all" href="/css/style.tableconverter.css" />
+<link rel="stylesheet" type="text/css" media="all" href="/css/style_base.css" />
+<link rel="stylesheet" type="text/css" media="all" href="/css/style_main.css" />
+<link rel="stylesheet" type="text/css" media="print" href="/css/style_print.css" />
+<title>お探しのページが見つかりません｜社会保険診療報酬支払基金</title>
+<script type="text/javascript" src="/js/jquery.min.js"></script>
+
+
+<script type="text/javascript" src="/js/search.js"></script>
+<script type="text/javascript" src="/js/gnavi.js"></script>
+</head>
+<body id="base">
+<!-- scs_jyogai_start -->
+<noscript>
+<p class="jsmessage">社会保険診療報酬支払基金ホームページではJavaScriptを使用しています。JavaScriptの使用を有効にしていない場合は、一部の機能が正確に動作しない恐れがあります。<br />お手数ですがJavaScriptの使用を有効にしてください。</p>
+</noscript>
+<div class="blockjump"><a name="PTOP" id="PTOP"><img src="/images/spacer.gif" alt="このページの先頭です" width="1" height="1" /></a><img src="/images/spacer.gif" alt="サイトメニューここから" width="1" height="1" /></div>
+<div id="blockskip">
+<script type="text/javascript">
+<!--
+$(function(){
+	$("#blockskip a").focus(function(){
+		$(this).parent()
+			.animate(
+				{
+					height: '1.5em'
+				},{
+					duration: 'fast'
+				}
+			)
+			.addClass("show");
+	});
+	$("#blockskip a")
+		.blur(function(){
+		$(this).parent()
+			.animate(
+				{
+					height: '1px'
+				},{
+					duration: 'fast',
+					complete: function(){
+						$(this).removeClass("show");
+					}
+				}
+			)
+	});
+});
+//-->
+</script>
+<a href="#CONT">このページの本文へ移動</a>
+</div>
+<div class="baseall">
+<!-- ▼ヘッダーここから▼ -->
+<div id="headbgall">
+<div class="headbg">
+<div id="h0title"><a href="/index.html"><img src="/images/c_title.gif" alt="社会保険診療報酬支払基金" width="400" height="60" /></a></div>
+<div class="headright clearfix">
+<ul class="headlist clearfix">
+<li><a href="https://www.zoomsight-sv2.jp/SSK/controller/index.html#https://www.ssk.or.jp/">音声読み上げ・文字拡大</a></li>
+<li><a href="/kanrensite.html">関連サイト</a></li>
+<li class="lilast"><a href="/sitemap.html">サイトマップ</a></li>
+</ul>
+<div class="search clearfix">
+<form action="javascript:goSearch()" name="SSF" id="SSF">
+<div class="search-txt"><label for="query" class="smsg"><img src="/images/spacer.gif" alt="サイト検索　キーワードを入力してください。" width="1" height="1" /></label></div>
+<div class="search-box"><input type="text" size="46" value="" class="tbox" name="query" id="query" /><input type="submit" name="sa" value="検索" class="fedbt" /></div>
+</form>
+</div><!-- /div searcht -->
+</div><!-- /div headright -->
+</div><!-- /div headbg -->
+</div><!-- /div headbgall -->
+<!--▽グローバルナビ▽-->
+<div class="gnbbgall clearfix">
+<ul class="gnavi">
+<li class="gnb01 parent">
+<a href="#">支払基金について</a>
+<div class="sub" id="gnavi01"></div>
+</li>
+<li class="gnb02 parent">
+<a href="#">診療報酬の審査</a>
+<div class="sub" id="gnavi02"></div>
+</li>
+<li class="gnb03 parent">
+<a href="#">診療報酬等の<br/>請求･支払</a>
+<div class="sub" id="gnavi03"></div>
+</li>
+<li class="gnb04 parent">
+<a href="#">オンライン資格確認･<br/>データヘルス等</a>
+<div class="sub" id="gnavi04"></div>
+</li>
+<li class="gnb05 parent">
+<a href="#">高齢者医療･介護保険･<br/>特定B型肝炎</a>
+<div class="sub" id="gnavi05"></div>
+</li>
+<li class="gnb06 parent">
+<a href="#">統計情報</a>
+<div class="sub" id="gnavi06"></div>
+</li>
+</ul>
+</div><!-- /div gnbbgall -->
+<!--△グローバルナビ△-->
+<div class="guidance"><img src="/images/spacer.gif" alt="サイトメニューここまで" width="1" height="1" /></div>
+
+<!--▽パンくずナビ▽-->
+<div class="pankuzubg">
+<div class="pankuzu">
+<ul class="clearfix">
+<li class="pk-img"><img src="/images/c_icon_pankuzu.gif" alt="現在のページ" width="20" height="19" /></li>
+<li><a href="/index.html">トップページ</a></li>
+<li class="pk-thispage">お探しのページが見つかりません</li>
+</ul>
+</div>
+</div>
+<!--△パンくずナビ△-->
+<hr />
+<div class="guidance"><a name="CONT" id="CONT"><img src="/images/spacer.gif" alt="本文ここから" width="1" height="1" /></a></div>
+<!-- scs_jyogai_end -->
+<!-- ▲ヘッダーここまで▲ -->
+<div class="wrap clearfix">
+<div id="main-nosub">
+<div class="h1bg"><div><h1>お探しのページが見つかりません</h1></div></div>
+
+<p>申し訳ございません。お探しのページが見つかりませんでした。<br />
+ご覧になっていたページからのリンクが無効になっているか、URLのタイプミスである可能性があります。下記の各項目からご覧になりたいページをお探しください。</p>
+
+<ul class="norcor">
+<li><a href="/index.html">トップページ</a></li>
+<li><a href="/sitemap.html">サイトマップ</a></li>
+</ul>
+
+<!-- scs_jyogai_start -->
+<div class="guidance"><img src="/images/spacer.gif" alt="本文ここまで" width="1" height="1" /></div>
+<!-- scs_jyogai_end -->
+<!-- scs_jyogai_start -->
+<div class="tothispage clearfix"><div><a href="#PTOP">このページの上へ戻る</a></div></div>
+<!-- scs_jyogai_end -->
+</div><!-- /div main -->
+</div><!-- /div wrap -->
+<!-- scs_jyogai_start -->
+<hr />
+<!-- ▼フッターここから▼ -->
+<div class="footbgall">
+<div class="footbg">
+<div class="newpara guidance"><img src="/images/spacer.gif" alt="以下フッターです。" width="1" height="1" /></div>
+<ul class="footlist clearfix">
+<li><a href="/sodan_madoguchi/index.html">ご意見・ご相談受付</a></li>
+<li><a href="/johohogo.html">情報保護管理体制</a></li>
+<li class="lilast"><a href="/riyo.html">サイトのご利用にあたって</a></li>
+</ul>
+<div class="copybg">Copyright &copy; Health Insurance Claims Review &amp; Reimbursement services. All Rights Reserved.<div class="guidance"><img src="/images/spacer.gif" alt="フッターここまで" width="1" height="1" /><a href="#PTOP"><img src="/images/spacer.gif" alt="このページの上へ戻る" width="1" height="1" /></a></div></div>
+</div><!-- /div footbg -->
+</div><!-- /div footbgall -->
+<!-- ▲フッターここまで▲ -->
+</div><!-- /div baseall -->
+<!-- scs_jyogai_end -->
+</body>
+</html>
