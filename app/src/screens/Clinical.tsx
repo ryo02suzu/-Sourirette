@@ -6,7 +6,7 @@
 import { useMemo, useState } from "react";
 import { ToothChart } from "../components/ToothChart.js";
 import { AiPanel } from "../components/AiPanel.js";
-import { activePatientDx, activePatientTeeth, type DxItem } from "../data/mock.js";
+import { activeBridges, activePatientDx, activePatientTeeth, type DxItem, type ToothState } from "../data/mock.js";
 import { calculateDemo, DEMO_CODES } from "../billing-demo.js";
 import type { AiDraftResult } from "../services/ai.js";
 import { parseTooth, toJapaneseNotation } from "../../../src/domain/tooth.js";
@@ -27,8 +27,18 @@ const SOAP_LABELS: Record<SoapKey, string> = {
   P: "治療計画・処置",
 };
 
+const STATUS_BUTTONS: { state: ToothState; label: string }[] = [
+  { state: "healthy", label: "健全" },
+  { state: "caries", label: "う蝕 C" },
+  { state: "cr", label: "CR充填" },
+  { state: "crown", label: "クラウン" },
+  { state: "missing", label: "欠損" },
+  { state: "implant", label: "インプラント" },
+];
+
 export function ClinicalScreen() {
   const [selectedTeeth, setSelectedTeeth] = useState<string[]>([]);
+  const [teethState, setTeethState] = useState<Record<string, ToothState>>(activePatientTeeth);
   const [dxList, setDxList] = useState<DxItem[]>(activePatientDx);
   const [soap, setSoap] = useState<Record<SoapKey, string>>({ S: "", O: "", A: "", P: "" });
   const [aiDraftFields, setAiDraftFields] = useState<Set<SoapKey>>(new Set());
@@ -40,6 +50,18 @@ export function ClinicalScreen() {
 
   const toggleTooth = (fdi: string) =>
     setSelectedTeeth((prev) => (prev.includes(fdi) ? prev.filter((t) => t !== fdi) : [...prev, fdi]));
+
+  const applyToothStatus = (state: ToothState) => {
+    setTeethState((prev) => {
+      const next = { ...prev };
+      for (const fdi of selectedTeeth) {
+        if (state === "healthy") delete next[fdi];
+        else next[fdi] = state;
+      }
+      return next;
+    });
+    setSelectedTeeth([]);
+  };
 
   const applySoap = (result: AiDraftResult) => {
     if (finalized) return;
@@ -117,9 +139,37 @@ export function ClinicalScreen() {
         {/* 左カラム: 歯式・傷病名 */}
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <div className="card">
-            <div className="card-head"><h2>歯式</h2></div>
+            <div className="card-head">
+              <h2>歯式</h2>
+              <span className="tiny" style={{ marginLeft: "auto" }}>
+                {selectedTeeth.length > 0
+                  ? `${selectedTeeth.length}歯 選択中 — 下のボタンで状態を設定`
+                  : "歯をタップして選択（複数可）"}
+              </span>
+            </div>
             <div className="card-body">
-              <ToothChart states={activePatientTeeth} selected={selectedTeeth} onToggle={toggleTooth} />
+              <ToothChart states={teethState} bridges={activeBridges} selected={selectedTeeth} onToggle={toggleTooth} />
+              <div className="status-toolbar">
+                {STATUS_BUTTONS.map((b) => (
+                  <button
+                    type="button"
+                    key={b.state}
+                    className={`btn sm tstat-${b.state}`}
+                    disabled={selectedTeeth.length === 0 || finalized}
+                    onClick={() => applyToothStatus(b.state)}
+                  >
+                    {b.label}
+                  </button>
+                ))}
+                {selectedTeeth.length > 0 && (
+                  <button type="button" className="btn sm" onClick={() => setSelectedTeeth([])}>選択解除</button>
+                )}
+              </div>
+              <div className="selected-teeth">
+                {selectedTeeth.map((fdi) => (
+                  <span key={fdi} className="chip brand">{toJapaneseNotation(parseTooth(fdi))}</span>
+                ))}
+              </div>
             </div>
           </div>
 

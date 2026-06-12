@@ -217,30 +217,47 @@ textarea, input, select { font-family: inherit; }
 .patient-banner .meta { font-size: 12px; color: var(--ink-2); }
 .patient-banner .alerts { margin-left: auto; display: flex; gap: 7px; flex-wrap: wrap; }
 
-/* 歯式チャート */
-.tooth-chart { user-select: none; }
-.arch { display: grid; grid-template-columns: repeat(16, 1fr); gap: 3px; }
-.arch + .arch { margin-top: 6px; padding-top: 6px; border-top: 1.5px dashed var(--line-strong); }
-.tooth {
-  position: relative; border: 1.5px solid var(--line-strong); border-radius: 7px;
-  background: var(--tooth-healthy);
-  height: 46px; display: flex; flex-direction: column; align-items: center; justify-content: center;
-  font-family: "Inter", sans-serif; font-size: 11px; font-weight: 600; color: var(--ink-2);
-  transition: all 0.12s; padding: 0;
+/* 歯式チャート（オドントグラム） */
+:root {
+  --tc-healthy: #fdfbf4;
+  --tc-caries: #fbe3e0;
+  --tc-cr: #ddeaf6;
+  --tc-missing: #f1f3f5;
 }
-.tooth:hover { border-color: var(--brand); }
-.tooth.selected { border-color: var(--brand); border-width: 2.5px; box-shadow: 0 0 0 3px var(--brand-soft); color: var(--brand-ink); }
-.tooth.caries { background: var(--tooth-caries); }
-.tooth.treated { background: var(--tooth-treated); }
-.tooth.missing { background: var(--tooth-missing); color: var(--ink-3); }
-.tooth.missing::after {
-  content: ""; position: absolute; inset: 6px;
-  background: linear-gradient(to top right, transparent 47%, var(--ink-3) 47%, var(--ink-3) 53%, transparent 53%);
-  opacity: 0.6;
+.odon-wrap { position: relative; user-select: none; }
+.odon-svg { width: 100%; height: auto; display: block; }
+.tooth-g { cursor: pointer; }
+.tooth-g:hover path:first-of-type { filter: brightness(0.97); }
+.odon-axis { stroke: var(--line-strong); stroke-width: 1; stroke-dasharray: 4 5; }
+.odon-side { font-size: 15px; font-weight: 700; fill: var(--ink-3); }
+.odon-jaw {
+  font-size: 13px; font-weight: 700; fill: var(--ink-3); letter-spacing: 2px;
+  paint-order: stroke; stroke: var(--surface); stroke-width: 6px;
 }
-.tooth .dot { position: absolute; top: 4px; right: 5px; width: 6px; height: 6px; border-radius: 50%; }
-.tooth .dot.caries { background: var(--error); }
-.tooth .dot.treated { background: #2779bd; }
+.odon-num {
+  font-family: "Inter", sans-serif; font-size: 13px; font-weight: 600;
+  fill: var(--ink-3); pointer-events: none;
+}
+.odon-num.sel { fill: var(--brand); font-weight: 800; }
+.odon-tooltip {
+  position: absolute; transform: translate(-50%, -100%);
+  background: #1d2b36; color: #fff; border-radius: 8px;
+  padding: 6px 11px; font-size: 12px; white-space: nowrap;
+  box-shadow: var(--shadow-3); pointer-events: none; z-index: 5;
+  display: flex; align-items: center; gap: 8px;
+}
+.odon-tip-state { font-size: 11px; padding: 1px 7px; border-radius: 5px; background: rgba(255, 255, 255, 0.16); }
+.odon-tip-state.s-caries { background: var(--error); }
+.odon-tip-state.s-cr { background: #5b8fb8; }
+.odon-tip-state.s-crown, .odon-tip-state.s-implant { background: #7f8b99; }
+
+.status-toolbar { display: flex; gap: 7px; flex-wrap: wrap; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+.status-toolbar .btn.tstat-caries:not(:disabled) { color: var(--error); border-color: #f1b6b1; }
+.status-toolbar .btn.tstat-cr:not(:disabled) { color: #38678f; border-color: #b5d0e6; }
+.status-toolbar .btn.tstat-crown:not(:disabled) { color: #5d6b7a; border-color: #c2ccd6; }
+.status-toolbar .btn.tstat-missing:not(:disabled) { color: var(--ink-2); }
+.status-toolbar .btn.tstat-implant:not(:disabled) { color: #5d6b7a; border-color: #c2ccd6; }
+.status-toolbar .btn.tstat-healthy:not(:disabled) { color: var(--ok); border-color: #b3dcc4; }
 .chart-legend { display: flex; gap: 14px; margin-top: 12px; font-size: 11px; color: var(--ink-2); flex-wrap: wrap; }
 .chart-legend .key { display: inline-flex; align-items: center; gap: 5px; }
 .chart-legend .swatch { width: 13px; height: 13px; border-radius: 4px; border: 1.5px solid var(--line-strong); }

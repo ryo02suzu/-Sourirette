@@ -24,18 +24,22 @@ export const todayPatients: BoardPatient[] = [
   { id: "p6", time: "11:30", name: "渡辺 健", kana: "ワタナベ ケン", age: 52, sex: "M", chief: "根管治療 2回目", status: "reserved", onshikaku: false, tags: ["再診"] },
 ];
 
-export type ToothState = "healthy" | "caries" | "treated" | "missing";
+export type ToothState = "healthy" | "caries" | "cr" | "crown" | "missing" | "implant";
 
 /** 診療中の患者（田中 花子）の口腔内状態 */
 export const activePatientTeeth: Record<string, ToothState> = {
   "16": "caries",
-  "17": "treated",
-  "26": "treated",
-  "36": "treated",
+  "17": "crown",
+  "25": "implant",
+  "26": "cr",
+  "36": "cr",
+  "45": "crown",
   "46": "missing",
-  "47": "treated",
-  "45": "treated",
+  "47": "crown",
 };
+
+/** ブリッジ（45 支台 — 46 ポンティック — 47 支台） */
+export const activeBridges: string[][] = [["45", "46", "47"]];
 
 export interface DxItem {
   teeth: string[];
