@@ -20,10 +20,11 @@ function initialData(): Record<string, PerioToothInput> {
   return data;
 }
 
-export function PerioScreen() {
+export function PerioScreen({ onTransfer }: { onTransfer(text: string): void }) {
   const [data, setData] = useState<Record<string, PerioToothInput>>(initialData);
   const [voiceState, setVoiceState] = useState<"idle" | "running" | "done">("idle");
   const [voiceCaption, setVoiceCaption] = useState("");
+  const [transferred, setTransferred] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const isMissing = (fdi: string) => activePatientTeeth[fdi] === "missing";
@@ -49,7 +50,7 @@ export function PerioScreen() {
     return m;
   }, [records]);
 
-  const setPd = (fdi: string, site: number, value: string) => {
+  const setPd = (fdi: string, site: number, value: string, target?: HTMLInputElement) => {
     const n = value === "" ? null : Math.max(0, Math.min(12, Number(value)));
     setData((prev) => {
       const tooth = prev[fdi] ?? emptyTooth();
@@ -57,6 +58,16 @@ export function PerioScreen() {
       pd[site] = Number.isNaN(n as number) ? null : n;
       return { ...prev, [fdi]: { ...tooth, pd } };
     });
+    // 入力したら次のセルへ自動フォーカス（プロービングのリズムを止めない）
+    if (target && value !== "" && !Number.isNaN(n as number)) {
+      const grid = target.closest(".card-body");
+      if (grid) {
+        const inputs = [...grid.querySelectorAll<HTMLInputElement>(".perio-cell input")];
+        const next = inputs[inputs.indexOf(target) + 1];
+        next?.focus();
+        next?.select();
+      }
+    }
   };
 
   const toggleBop = (fdi: string, site: number) => {
@@ -124,10 +135,10 @@ export function PerioScreen() {
   return (
     <div>
       <div className="patient-banner">
-        <div className="avatar">佐藤</div>
+        <div className="avatar">田中</div>
         <div>
-          <div className="pname">佐藤 美咲 <span className="muted" style={{ fontWeight: 500 }}>サトウ ミサキ</span></div>
-          <div className="meta">34歳 女性 ・ カルテ番号 000128 ・ SPT（定期メンテ）・ 歯周精密検査は4点法デモ</div>
+          <div className="pname">田中 花子 <span className="muted" style={{ fontWeight: 500 }}>タナカ ハナコ</span></div>
+          <div className="meta">45歳 女性 ・ カルテ番号 000482 ・ 傷病名: 歯周炎 ・ 4点法デモ</div>
         </div>
         <div className="alerts">
           <button
@@ -179,8 +190,20 @@ export function PerioScreen() {
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                 {assessment.suggestions.map((s) => <span className="chip brand" key={s}>{s}</span>)}
               </div>
-              <button type="button" className="btn primary" style={{ width: "100%", marginTop: 14 }} disabled={summary.sites === 0}>
-                検査結果をカルテへ転記
+              <button
+                type="button"
+                className="btn primary"
+                style={{ width: "100%", marginTop: 14 }}
+                disabled={summary.sites === 0 || transferred}
+                onClick={() => {
+                  setTransferred(true);
+                  onTransfer(
+                    `平均PD ${summary.meanPd}mm / 最大 ${summary.maxPd}mm / BOP ${Math.round(summary.bopRate * 100)}% / ` +
+                    `4mm以上 ${summary.sites4mm}部位・6mm以上 ${summary.sites6mm}部位（${summary.sites}部位計測）。${assessment.label}。`,
+                  );
+                }}
+              >
+                {transferred ? "✓ カルテへ転記済み" : "検査結果をカルテへ転記"}
               </button>
               <div className="tiny" style={{ marginTop: 8 }}>
                 正式な病態区分・算定条件（歯周基本/精密検査、SPT移行）は公式マスタ取込後に実装。
@@ -201,7 +224,7 @@ function PerioRow({
   fdis: string[];
   data: Record<string, PerioToothInput>;
   isMissing(fdi: string): boolean;
-  setPd(fdi: string, site: number, value: string): void;
+  setPd(fdi: string, site: number, value: string, target?: HTMLInputElement): void;
   toggleBop(fdi: string, site: number): void;
 }) {
   return (
@@ -219,7 +242,7 @@ function PerioRow({
               inputMode="numeric"
               maxLength={2}
               value={pd ?? ""}
-              onChange={(e) => setPd(fdi, site, e.target.value)}
+              onChange={(e) => setPd(fdi, site, e.target.value, e.target)}
               aria-label={`${fdi} ${label} PD`}
             />
             <button type="button" className="bop-dot" title="BOP切替" onClick={() => toggleBop(fdi, site)} />

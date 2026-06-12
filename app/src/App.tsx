@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { TodayBoard } from "./screens/TodayBoard.js";
 import { AppointmentsScreen } from "./screens/Appointments.js";
 import { PatientsScreen } from "./screens/Patients.js";
@@ -9,6 +9,9 @@ import { ReceiptsScreen } from "./screens/Receipts.js";
 import { AnalyticsScreen } from "./screens/Analytics.js";
 import { SettingsScreen } from "./screens/Settings.js";
 import { CtiPopup } from "./components/CtiPopup.js";
+import { ToastProvider } from "./components/toast.js";
+import { CommandPalette, type PaletteAction } from "./components/CommandPalette.js";
+import { allPatients } from "./data/mock.js";
 
 type Screen =
   | "home" | "appointments" | "patients" | "clinical" | "perio"
@@ -31,7 +34,7 @@ const TITLES: Record<Screen, string> = {
   appointments: "予約管理（アポイントブック）",
   patients: "患者管理",
   clinical: "診療 — 田中 花子",
-  perio: "歯周検査（P検）— 佐藤 美咲",
+  perio: "歯周検査（P検）— 田中 花子",
   checkout: "会計",
   receipts: "レセプト（2026年5月診療分）",
   analytics: "経営分析",
@@ -41,61 +44,115 @@ const TITLES: Record<Screen, string> = {
 export default function App() {
   const [screen, setScreen] = useState<Screen>("clinical");
   const [cti, setCti] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  /** P検 → 診療画面への転記（nonce で1回ずつ適用） */
+  const [perioImport, setPerioImport] = useState<{ text: string; nonce: number } | null>(null);
+  /** コマンドパレットから患者を開く */
+  const [focusPatient, setFocusPatient] = useState<{ id: string; nonce: number } | null>(null);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setPaletteOpen((v) => !v);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  const paletteActions = useMemo<PaletteAction[]>(
+    () => [
+      ...NAV.map((n) => ({
+        group: "画面へ移動",
+        label: n.label,
+        icon: n.icon,
+        run: () => setScreen(n.key),
+      })),
+      ...allPatients.map((p) => ({
+        group: "患者を開く",
+        label: `${p.name}`,
+        icon: "👤",
+        hint: `${p.kana} ・ ${p.chartNo}`,
+        run: () => {
+          setFocusPatient({ id: p.id, nonce: Date.now() });
+          setScreen("patients");
+        },
+      })),
+    ],
+    [],
+  );
+
+  const show = (k: Screen): React.CSSProperties => (screen === k ? {} : { display: "none" });
 
   return (
-    <div className="app">
-      <aside className="sidebar">
-        <div className="logo">
-          Sourirette
-          <small>DENTAL EMR + CLAIMS</small>
-        </div>
-        <nav>
-          {NAV.map((n) => (
-            <button
-              type="button"
-              key={n.key}
-              className={`nav-item ${screen === n.key ? "active" : ""}`}
-              onClick={() => setScreen(n.key)}
-            >
-              <span className="icon">{n.icon}</span>
-              {n.label}
-            </button>
-          ))}
-        </nav>
-        <div className="spacer" />
-        <div className="user">
-          <div className="avatar">鈴</div>
-          <div>
-            <div className="name">鈴木 智也</div>
-            <div className="role">歯科医師・管理者</div>
+    <ToastProvider>
+      <div className="app">
+        <aside className="sidebar">
+          <div className="logo">
+            Sourirette
+            <small>DENTAL EMR + CLAIMS</small>
           </div>
-        </div>
-      </aside>
+          <nav>
+            {NAV.map((n) => (
+              <button
+                type="button"
+                key={n.key}
+                className={`nav-item ${screen === n.key ? "active" : ""}`}
+                onClick={() => setScreen(n.key)}
+              >
+                <span className="icon">{n.icon}</span>
+                {n.label}
+              </button>
+            ))}
+          </nav>
+          <div className="spacer" />
+          <button type="button" className="nav-item" onClick={() => setPaletteOpen(true)}>
+            <span className="icon">🔍</span>検索 <kbd className="kbd-dark">⌘K</kbd>
+          </button>
+          <div className="user">
+            <div className="avatar">鈴</div>
+            <div>
+              <div className="name">鈴木 智也</div>
+              <div className="role">歯科医師・管理者</div>
+            </div>
+          </div>
+        </aside>
 
-      <div className="main">
-        <header className="topbar">
-          <h1>{TITLES[screen]}</h1>
-          <span className="date">2026年6月12日（金）</span>
-          <div className="right">
-            <button type="button" className="btn sm" onClick={() => setCti(true)}>📞 CTIデモ</button>
-            <span className="chip brand">すずき歯科クリニック</span>
-            <span className="chip">デモ環境</span>
-          </div>
-        </header>
-        <main className="content">
-          {screen === "home" && <TodayBoard onOpenChart={() => setScreen("clinical")} />}
-          {screen === "appointments" && <AppointmentsScreen />}
-          {screen === "patients" && <PatientsScreen onOpenChart={() => setScreen("clinical")} />}
-          {screen === "clinical" && <ClinicalScreen />}
-          {screen === "perio" && <PerioScreen />}
-          {screen === "checkout" && <CheckoutScreen />}
-          {screen === "receipts" && <ReceiptsScreen />}
-          {screen === "analytics" && <AnalyticsScreen />}
-          {screen === "settings" && <SettingsScreen />}
-        </main>
+        <div className="main">
+          <header className="topbar">
+            <h1>{TITLES[screen]}</h1>
+            <span className="date">2026年6月12日（金）</span>
+            <div className="right">
+              <button type="button" className="btn sm" onClick={() => setCti(true)}>📞 CTIデモ</button>
+              <span className="chip brand">すずき歯科クリニック</span>
+              <span className="chip">デモ環境</span>
+            </div>
+          </header>
+          {/* 全画面をマウントしたまま表示切替（入力途中の状態を失わない） */}
+          <main className="content">
+            <div style={show("home")}><TodayBoard onOpenChart={() => setScreen("clinical")} /></div>
+            <div style={show("appointments")}><AppointmentsScreen /></div>
+            <div style={show("patients")}><PatientsScreen onOpenChart={() => setScreen("clinical")} focus={focusPatient} /></div>
+            <div style={show("clinical")}><ClinicalScreen perioImport={perioImport} /></div>
+            <div style={show("perio")}>
+              <PerioScreen
+                onTransfer={(text) => {
+                  setPerioImport({ text, nonce: Date.now() });
+                  setScreen("clinical");
+                }}
+              />
+            </div>
+            <div style={show("checkout")}><CheckoutScreen /></div>
+            <div style={show("receipts")}><ReceiptsScreen /></div>
+            <div style={show("analytics")}><AnalyticsScreen /></div>
+            <div style={show("settings")}><SettingsScreen /></div>
+          </main>
+        </div>
+
+        {cti && <CtiPopup onClose={() => setCti(false)} onOpenChart={() => { setCti(false); setScreen("patients"); }} />}
+        <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} actions={paletteActions} />
       </div>
-
-      {cti && <CtiPopup onClose={() => setCti(false)} onOpenChart={() => { setCti(false); setScreen("patients"); }} />}
-    </div>
+    </ToastProvider>
   );
 }

@@ -1,10 +1,25 @@
 /** 患者管理: 検索一覧 → 患者サマリ（申し送り付箋・来院履歴・リコール）。 */
-import { useMemo, useState } from "react";
-import { allPatients, visitHistory, type PatientRow } from "../data/mock.js";
+import { useEffect, useMemo, useState } from "react";
+import { allPatients, visitHistory } from "../data/mock.js";
 
-export function PatientsScreen({ onOpenChart }: { onOpenChart(): void }) {
+export function PatientsScreen({
+  onOpenChart,
+  focus,
+}: {
+  onOpenChart(): void;
+  focus?: { id: string; nonce: number } | null;
+}) {
   const [query, setQuery] = useState("");
   const [activeId, setActiveId] = useState<string | null>("p2");
+
+  // コマンドパレット（⌘K）から患者が選ばれたら該当患者を開く
+  useEffect(() => {
+    if (focus) {
+      setActiveId(focus.id);
+      setQuery("");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focus?.nonce]);
 
   const filtered = useMemo(() => {
     const q = query.trim();

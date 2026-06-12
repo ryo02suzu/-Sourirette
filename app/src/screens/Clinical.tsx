@@ -3,9 +3,10 @@
  * 左: 歯式・傷病名 / 中央: SOAPカルテ / 右: AIパネル＋算定プレビュー。
  * 算定プレビューはコアの CalculationEngine（src/billing）をそのまま実行している。
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ToothChart } from "../components/ToothChart.js";
 import { AiPanel } from "../components/AiPanel.js";
+import { useToast } from "../components/toast.js";
 import { activeBridges, activePatientDx, activePatientTeeth, type DxItem, type ToothState } from "../data/mock.js";
 import { auditPrescriptions, calculateDemo, DEMO_CODES, masterName } from "../billing-demo.js";
 import type { AiDraftResult } from "../services/ai.js";
@@ -40,7 +41,8 @@ const STATUS_BUTTONS: { state: ToothState; label: string }[] = [
   { state: "implant", label: "インプラント" },
 ];
 
-export function ClinicalScreen() {
+export function ClinicalScreen({ perioImport }: { perioImport?: { text: string; nonce: number } | null }) {
+  const toast = useToast();
   const [selectedTeeth, setSelectedTeeth] = useState<string[]>([]);
   const [teethState, setTeethState] = useState<Record<string, ToothState>>(activePatientTeeth);
   const [dxList, setDxList] = useState<DxItem[]>(activePatientDx);
@@ -66,6 +68,22 @@ export function ClinicalScreen() {
     });
     setSelectedTeeth([]);
   };
+
+  // P検画面からの転記: O欄に検査サマリを追記し、歯周基本検査を算定に追加
+  useEffect(() => {
+    if (!perioImport || finalized) return;
+    setSoap((prev) => ({
+      ...prev,
+      O: `${prev.O}${prev.O ? "\n" : ""}【歯周検査】${perioImport.text}`,
+    }));
+    setProcedures((prev) =>
+      prev.some((p) => p.procedureCode === "DEMO-PKEN")
+        ? prev
+        : [...prev, { procedureCode: "DEMO-PKEN", name: masterName("DEMO-PKEN", TODAY), quantity: 1 }],
+    );
+    toast("歯周検査の結果をカルテへ転記し、歯周基本検査を算定に追加しました");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [perioImport?.nonce]);
 
   const applySoap = (result: AiDraftResult) => {
     if (finalized) return;
@@ -131,6 +149,7 @@ export function ClinicalScreen() {
     setHash(hex.slice(0, 16));
     setFinalized(true);
     setAiDraftFields(new Set());
+    toast(`カルテを確定しました ⛓ ${hex.slice(0, 8)}…（以後の変更は新版の追記）`);
   };
 
   return (
