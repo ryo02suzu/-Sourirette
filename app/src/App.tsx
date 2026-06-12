@@ -8,6 +8,9 @@ import { CheckoutScreen } from "./screens/Checkout.js";
 import { ReceiptsScreen } from "./screens/Receipts.js";
 import { AnalyticsScreen } from "./screens/Analytics.js";
 import { SettingsScreen } from "./screens/Settings.js";
+import { HomeVisitScreen } from "./screens/HomeVisit.js";
+import { DocumentsScreen } from "./screens/Documents.js";
+import { LabScreen } from "./screens/Lab.js";
 import { CtiPopup } from "./components/CtiPopup.js";
 import { ToastProvider } from "./components/toast.js";
 import { CommandPalette, type PaletteAction } from "./components/CommandPalette.js";
@@ -15,6 +18,7 @@ import { allPatients } from "./data/mock.js";
 
 type Screen =
   | "home" | "appointments" | "patients" | "clinical" | "perio"
+  | "homevisit" | "documents" | "lab"
   | "checkout" | "receipts" | "analytics" | "settings";
 
 const NAV: { key: Screen; label: string; icon: string }[] = [
@@ -23,6 +27,9 @@ const NAV: { key: Screen; label: string; icon: string }[] = [
   { key: "patients", label: "患者", icon: "👥" },
   { key: "clinical", label: "診療", icon: "🦷" },
   { key: "perio", label: "歯周検査", icon: "📈" },
+  { key: "homevisit", label: "訪問診療", icon: "🚗" },
+  { key: "documents", label: "文書発行", icon: "📄" },
+  { key: "lab", label: "技工", icon: "⚒️" },
   { key: "checkout", label: "会計", icon: "💴" },
   { key: "receipts", label: "レセプト", icon: "🧾" },
   { key: "analytics", label: "経営分析", icon: "📊" },
@@ -35,6 +42,9 @@ const TITLES: Record<Screen, string> = {
   patients: "患者管理",
   clinical: "診療 — 田中 花子",
   perio: "歯周検査（P検）— 田中 花子",
+  homevisit: "訪問診療（医療・介護同時算定）",
+  documents: "文書発行",
+  lab: "技工（クラウド技工指示書）",
   checkout: "会計",
   receipts: "レセプト（2026年5月診療分）",
   analytics: "経営分析",
@@ -49,6 +59,8 @@ export default function App() {
   const [perioImport, setPerioImport] = useState<{ text: string; nonce: number } | null>(null);
   /** コマンドパレットから患者を開く */
   const [focusPatient, setFocusPatient] = useState<{ id: string; nonce: number } | null>(null);
+  /** 届出済みの施設基準（設定画面 ⇄ 算定エンジン連動） */
+  const [facilityStandards, setFacilityStandards] = useState<string[]>([]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -131,10 +143,10 @@ export default function App() {
           </header>
           {/* 全画面をマウントしたまま表示切替（入力途中の状態を失わない） */}
           <main className="content">
-            <div style={show("home")}><TodayBoard onOpenChart={() => setScreen("clinical")} /></div>
+            <div style={show("home")}><TodayBoard onOpenChart={() => setScreen("clinical")} onOpenCheckout={() => setScreen("checkout")} /></div>
             <div style={show("appointments")}><AppointmentsScreen /></div>
             <div style={show("patients")}><PatientsScreen onOpenChart={() => setScreen("clinical")} focus={focusPatient} /></div>
-            <div style={show("clinical")}><ClinicalScreen perioImport={perioImport} /></div>
+            <div style={show("clinical")}><ClinicalScreen perioImport={perioImport} facilityStandards={facilityStandards} /></div>
             <div style={show("perio")}>
               <PerioScreen
                 onTransfer={(text) => {
@@ -143,10 +155,22 @@ export default function App() {
                 }}
               />
             </div>
+            <div style={show("homevisit")}><HomeVisitScreen /></div>
+            <div style={show("documents")}><DocumentsScreen /></div>
+            <div style={show("lab")}><LabScreen /></div>
             <div style={show("checkout")}><CheckoutScreen /></div>
-            <div style={show("receipts")}><ReceiptsScreen /></div>
+            <div style={show("receipts")}><ReceiptsScreen onOpenChart={() => setScreen("clinical")} /></div>
             <div style={show("analytics")}><AnalyticsScreen /></div>
-            <div style={show("settings")}><SettingsScreen /></div>
+            <div style={show("settings")}>
+              <SettingsScreen
+                standards={facilityStandards}
+                onToggle={(code) =>
+                  setFacilityStandards((prev) =>
+                    prev.includes(code) ? prev.filter((c) => c !== code) : [...prev, code],
+                  )
+                }
+              />
+            </div>
           </main>
         </div>
 

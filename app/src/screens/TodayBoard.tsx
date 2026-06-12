@@ -20,7 +20,7 @@ const NEXT: Record<FlowStatus, { status: FlowStatus | "done"; message: string }>
   waiting_pay: { status: "done", message: "の会計が完了しました" },
 };
 
-export function TodayBoard({ onOpenChart }: { onOpenChart(): void }) {
+export function TodayBoard({ onOpenChart, onOpenCheckout }: { onOpenChart(): void; onOpenCheckout(): void }) {
   const toast = useToast();
   const [patients, setPatients] = useState<BoardPatient[]>(todayPatients);
   const [doneCount, setDoneCount] = useState(3); // 本日すでに完了した患者（デモ）
@@ -77,6 +77,16 @@ export function TodayBoard({ onOpenChart }: { onOpenChart(): void }) {
                           onClick={(e) => { e.stopPropagation(); onOpenChart(); }}
                         >
                           カルテ
+                        </button>
+                      )}
+                      {p.status === "waiting_pay" && (
+                        <button
+                          type="button"
+                          className="btn sm primary"
+                          style={{ marginLeft: "auto" }}
+                          onClick={(e) => { e.stopPropagation(); onOpenCheckout(); }}
+                        >
+                          会計へ
                         </button>
                       )}
                     </div>

@@ -35,6 +35,7 @@ function buildMaster(): InMemoryMaster {
     ["DEMO-SCALING", "スケーリング（1/3顎）", 70],
     ["DEMO-SRP", "SRP（1/3顎）", 60],
     ["DEMO-RX-AMOX", "投薬（アモキシシリン）", 40],
+    ["DEMO-KOKAN-KASAN", "口腔管理体制強化加算", 50],
   ];
   for (const [code, name, points] of rows) {
     m.add({ code, name, points, validFrom: SINCE });
@@ -109,28 +110,44 @@ const dxTriangleRule: Rule = {
   },
 };
 
+/** 施設基準による加算（デモ: 口管強の届出があれば基本診療料に加算） */
+const facilityBonusRule: Rule = {
+  id: `facility-bonus/${SINCE}`,
+  validFrom: SINCE,
+  evaluate(ctx: CalculationContext): RuleOutput {
+    if (!ctx.facility.has("KOKANKYO", ctx.visit.visitDate)) return {};
+    const row = ctx.master.findProcedure("DEMO-KOKAN-KASAN", ctx.visit.visitDate);
+    if (!row) return {};
+    return { lines: [{ procedureCode: "DEMO-KOKAN-KASAN", name: row.name, points: row.points, quantity: 1 }] };
+  },
+};
+
 export interface DemoEngineInput {
   visitType: "first" | "followup";
   visitDate: string;
   procedures: PerformedProcedure[];
   diagnoses: Diagnosis[];
+  /** 届出済みの施設基準コード（設定画面と連動） */
+  facilityStandards?: string[];
 }
 
 const engine = new CalculationEngine([
   createBasicVisitRule(DEMO_CODES, SINCE),
   procedurePricingRule,
   dxTriangleRule,
+  facilityBonusRule,
 ]);
 const master = buildMaster();
 
 export function calculateDemo(input: DemoEngineInput) {
+  const standards = input.facilityStandards ?? [];
   return engine.calculate({
     patient: { id: "demo", birthDate: "1981-02-14", sex: "F" },
     visit: { id: "demo-visit", patientId: "demo", visitDate: input.visitDate, visitType: input.visitType },
     procedures: input.procedures,
     diagnoses: input.diagnoses,
     history: { countInMonth: () => 0 },
-    facility: { has: () => false },
+    facility: { has: (code) => standards.includes(code) },
     master,
   });
 }

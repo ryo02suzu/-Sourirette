@@ -41,10 +41,20 @@ const STATUS_BUTTONS: { state: ToothState; label: string }[] = [
   { state: "implant", label: "インプラント" },
 ];
 
-export function ClinicalScreen({ perioImport }: { perioImport?: { text: string; nonce: number } | null }) {
+const SURFACE_LABELS: [string, string][] = [["M", "近心"], ["D", "遠心"], ["B", "頬側"], ["L", "舌側"], ["O", "咬合面"]];
+
+export function ClinicalScreen({
+  perioImport,
+  facilityStandards = [],
+}: {
+  perioImport?: { text: string; nonce: number } | null;
+  facilityStandards?: string[];
+}) {
   const toast = useToast();
   const [selectedTeeth, setSelectedTeeth] = useState<string[]>([]);
   const [teethState, setTeethState] = useState<Record<string, ToothState>>(activePatientTeeth);
+  /** 歯面単位の所見（fdi → M/D/B/L/O） */
+  const [surfaces, setSurfaces] = useState<Record<string, string[]>>({ "16": ["D"] });
   const [dxList, setDxList] = useState<DxItem[]>(activePatientDx);
   const [soap, setSoap] = useState<Record<SoapKey, string>>({ S: "", O: "", A: "", P: "" });
   const [aiDraftFields, setAiDraftFields] = useState<Set<SoapKey>>(new Set());
@@ -116,8 +126,34 @@ export function ClinicalScreen({ perioImport }: { perioImport?: { text: string; 
     );
   };
 
-  const removeProcedure = (code: string) =>
+  const removeProcedure = (code: string) => {
+    const removed = procedures.find((p) => p.procedureCode === code);
     setProcedures((prev) => prev.filter((p) => p.procedureCode !== code));
+    if (removed) {
+      toast(`「${removed.name}」を削除しました`, "info", {
+        label: "元に戻す",
+        run: () => setProcedures((prev) => (prev.some((p) => p.procedureCode === code) ? prev : [...prev, removed])),
+      });
+    }
+  };
+
+  const toggleSurface = (fdi: string, surface: string) =>
+    setSurfaces((prev) => {
+      const cur = prev[fdi] ?? [];
+      const next = cur.includes(surface) ? cur.filter((s) => s !== surface) : [...cur, surface];
+      return { ...prev, [fdi]: next };
+    });
+
+  /** 部位表示: 歯面があれば 右上6(DO) のように付記 */
+  const teethLabel = (teeth?: string[]) =>
+    teeth && teeth.length > 0
+      ? teeth
+          .map((t) => {
+            const s = surfaces[t] ?? [];
+            return toJapaneseNotation(parseTooth(t)) + (s.length > 0 ? `(${s.join("")})` : "");
+          })
+          .join("・")
+      : "—";
 
   const calc = useMemo(() => {
     const result = calculateDemo({
@@ -125,10 +161,11 @@ export function ClinicalScreen({ perioImport }: { perioImport?: { text: string; 
       visitDate: TODAY,
       procedures,
       diagnoses: dxList.map((d) => ({ diseaseCode: d.name, teeth: d.teeth, onsetDate: d.since })),
+      facilityStandards,
     });
     // 処方監査（薬剤の禁忌チェック）は算定とは独立のセーフティ層として合流
     return { ...result, issues: [...result.issues, ...auditPrescriptions(procedures, PATIENT_ALLERGIES)] };
-  }, [procedures, dxList]);
+  }, [procedures, dxList, facilityStandards]);
 
   const hasError = calc.issues.some((i) => i.severity === "error");
 
@@ -180,7 +217,28 @@ export function ClinicalScreen({ perioImport }: { perioImport?: { text: string; 
               </span>
             </div>
             <div className="card-body">
-              <ToothChart states={teethState} bridges={activeBridges} selected={selectedTeeth} onToggle={toggleTooth} />
+              <ToothChart states={teethState} bridges={activeBridges} surfaces={surfaces} selected={selectedTeeth} onToggle={toggleTooth} />
+              {selectedTeeth.length === 1 && (
+                <div className="surface-panel">
+                  <span className="tiny" style={{ fontWeight: 700 }}>
+                    歯面（{toJapaneseNotation(parseTooth(selectedTeeth[0]!))}）:
+                  </span>
+                  {SURFACE_LABELS.map(([code, label]) => {
+                    const on = (surfaces[selectedTeeth[0]!] ?? []).includes(code);
+                    return (
+                      <button
+                        type="button"
+                        key={code}
+                        className={`btn sm ${on ? "surface-on" : ""}`}
+                        disabled={finalized}
+                        onClick={() => toggleSurface(selectedTeeth[0]!, code)}
+                      >
+                        {code} {label}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
               <div className="status-toolbar">
                 {STATUS_BUTTONS.map((b) => (
                   <button
@@ -321,7 +379,7 @@ export function ClinicalScreen({ perioImport }: { perioImport?: { text: string; 
                   {calc.lines.map((l) => (
                     <tr key={l.procedureCode}>
                       <td>{procedures.find((p) => p.procedureCode === l.procedureCode)?.fromAi && <span className="ai-mark">✦ </span>}{l.name}</td>
-                      <td className="tiny">{l.teeth?.map((t) => toJapaneseNotation(parseTooth(t))).join("・") ?? "—"}</td>
+                      <td className="tiny">{teethLabel(l.teeth)}</td>
                       <td className="num">{l.points * l.quantity}</td>
                       <td style={{ width: 28 }}>
                         {l.procedureCode !== DEMO_CODES.firstVisit && !finalized && (

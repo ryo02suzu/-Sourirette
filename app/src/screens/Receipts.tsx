@@ -6,7 +6,7 @@ const AI_TEKIYO_DRAFT =
   "義歯不適合により疼痛著明、咀嚼困難を認めたため同月2回目の調整を実施。" +
   "右下臼歯部顎堤の骨吸収が顕著であり、リライニングでは対応困難と判断した。";
 
-export function ReceiptsScreen() {
+export function ReceiptsScreen({ onOpenChart }: { onOpenChart(): void }) {
   const [openId, setOpenId] = useState<string | null>("r2");
   const [tekiyoDraft, setTekiyoDraft] = useState(false);
   const totalPoints = monthReceipts.reduce((s, r) => s + r.points, 0);
@@ -76,7 +76,7 @@ export function ReceiptsScreen() {
                 {issue.message.includes("摘要欄") && (
                   <button type="button" className="btn sm ghost-ai" onClick={() => setTekiyoDraft(!tekiyoDraft)}>✦ 摘要文案</button>
                 )}
-                <button type="button" className="btn sm">カルテへ</button>
+                <button type="button" className="btn sm" onClick={onOpenChart}>カルテへ</button>
               </div>
             ))}
             {tekiyoDraft && openId === "r3" && (

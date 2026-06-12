@@ -604,3 +604,68 @@ button:focus-visible, .tooth-g:focus-visible { outline: 2px solid var(--brand); 
   .sidebar .user { justify-content: center; padding: 10px 0; }
   .nav-item kbd { display: none; }
 }
+
+/* ===== トーストのアクション（アンドゥ等） ===== */
+.toast-action {
+  margin-left: 6px; background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.3);
+  color: #fff; border-radius: 7px; padding: 3px 10px; font-size: 12px; font-weight: 700;
+}
+.toast-action:hover { background: rgba(255,255,255,0.25); }
+
+/* ===== 歯面パネル ===== */
+.surface-panel {
+  display: flex; align-items: center; gap: 7px; flex-wrap: wrap;
+  margin-top: 12px; padding: 10px 12px;
+  background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--radius-sm);
+}
+.surface-panel .btn.surface-on { background: var(--error-soft); border-color: var(--error); color: var(--error); font-weight: 800; }
+
+/* ===== セグメントコントロール（訪問診療） ===== */
+.form-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+.form-row > label { width: 150px; font-size: 12.5px; font-weight: 700; color: var(--ink-2); flex-shrink: 0; }
+.seg { display: inline-flex; border: 1px solid var(--line-strong); border-radius: 9px; overflow: hidden; }
+.seg button {
+  border: none; background: var(--surface); padding: 7px 14px; font-size: 12.5px; font-weight: 600;
+  color: var(--ink-2); border-right: 1px solid var(--line);
+}
+.seg button:last-child { border-right: none; }
+.seg button.on { background: var(--brand); color: #fff; font-weight: 700; }
+
+/* ===== 文書発行 ===== */
+.doc-item {
+  display: flex; flex-direction: column; align-items: flex-start; text-align: left;
+  border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface);
+  padding: 11px 13px; font-size: 13px; transition: all 0.15s;
+}
+.doc-item:hover { border-color: var(--ink-3); }
+.doc-item.active { border-color: var(--brand); background: var(--brand-soft); }
+.doc-preview {
+  white-space: pre-wrap; font-size: 13px; line-height: 1.9;
+  background: #fffdf8; border: 1.5px solid var(--line-strong); border-radius: 10px;
+  padding: 22px 26px; min-height: 320px;
+  font-family: "Noto Sans JP", serif;
+}
+
+/* ===== 技工チャット ===== */
+.chat-thread { display: flex; flex-direction: column; gap: 12px; max-height: 420px; overflow: auto; }
+.chat-msg { display: flex; flex-direction: column; max-width: 85%; }
+.chat-msg.clinic { align-self: flex-end; align-items: flex-end; }
+.chat-msg.lab { align-self: flex-start; align-items: flex-start; }
+.chat-meta { font-size: 10.5px; color: var(--ink-3); margin-bottom: 3px; }
+.chat-bubble {
+  padding: 9px 13px; border-radius: 13px; font-size: 12.5px; line-height: 1.7;
+}
+.chat-msg.clinic .chat-bubble { background: var(--brand-soft); color: var(--brand-ink); border-bottom-right-radius: 4px; }
+.chat-msg.lab .chat-bubble { background: var(--surface-2); border: 1px solid var(--line); border-bottom-left-radius: 4px; }
+
+/* ===== トグルスイッチ（施設基準） ===== */
+.switch {
+  width: 44px; height: 25px; border-radius: 999px; border: none;
+  background: var(--line-strong); position: relative; transition: background 0.2s; flex-shrink: 0;
+}
+.switch .knob {
+  position: absolute; top: 3px; left: 3px; width: 19px; height: 19px; border-radius: 50%;
+  background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.25); transition: left 0.2s;
+}
+.switch.on { background: var(--brand); }
+.switch.on .knob { left: 22px; }

@@ -119,8 +119,23 @@ interface Props {
   states: Record<string, ToothState>;
   /** ブリッジ（支台歯〜ポンティック〜支台歯の FDI 列） */
   bridges: string[][];
+  /** 歯面単位の所見（fdi → ["M","D","B","L","O"]）。う蝕等の部位を歯面レベルで表示 */
+  surfaces?: Record<string, string[]>;
   selected: string[];
   onToggle(fdi: string): void;
+}
+
+/** 歯面マーカーの歯ローカル座標（回転前。M/D は近遠心＝歯列弓に沿う向き） */
+function surfaceOffset(surface: string, l: ToothLayout, jaw: "upper" | "lower", side: "right" | "left"): [number, number] {
+  const mesialSign = side === "right" ? 1 : -1;
+  const buccalSign = jaw === "upper" ? -1 : 1;
+  switch (surface) {
+    case "M": return [mesialSign * l.w * 0.33, 0];
+    case "D": return [-mesialSign * l.w * 0.33, 0];
+    case "B": return [0, buccalSign * l.h * 0.33];
+    case "L": return [0, -buccalSign * l.h * 0.33];
+    default: return [0, 0]; // O（咬合面）/ 切縁
+  }
 }
 
 function ToothShape({ l, state, isPontic }: { l: ToothLayout; state: ToothState; isPontic: boolean }) {
@@ -173,7 +188,7 @@ function ToothShape({ l, state, isPontic }: { l: ToothLayout; state: ToothState;
   );
 }
 
-export function ToothChart({ states, bridges, selected, onToggle }: Props) {
+export function ToothChart({ states, bridges, surfaces, selected, onToggle }: Props) {
   const [hover, setHover] = useState<string | null>(null);
 
   const pontics = useMemo(() => {
@@ -239,6 +254,16 @@ export function ToothChart({ states, bridges, selected, onToggle }: Props) {
                 </>
               )}
               <ToothShape l={l} state={state} isPontic={isPontic} />
+              {/* 歯面マーカー（回転に追従して近遠心/頬舌側を示す） */}
+              {(surfaces?.[l.fdi] ?? []).map((s) => {
+                const tooth = parseTooth(l.fdi);
+                const [ox, oy] = surfaceOffset(s, l, tooth.jaw, tooth.side);
+                return (
+                  <g key={s} transform={`rotate(${l.rot})`}>
+                    <circle cx={ox} cy={oy} r={4} fill="#d92d20" stroke="#fff" strokeWidth={1.2} />
+                  </g>
+                );
+              })}
               {/* う蝕バッジ */}
               {state === "caries" && (
                 <g transform={`translate(${l.w * 0.52},${-l.h * 0.52})`}>
