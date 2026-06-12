@@ -33,6 +33,8 @@ function buildMaster(): InMemoryMaster {
     ["DEMO-TBI", "ブラッシング指導（実地指導）", 80],
     ["DEMO-PKEN", "歯周基本検査", 200],
     ["DEMO-SCALING", "スケーリング（1/3顎）", 70],
+    ["DEMO-SRP", "SRP（1/3顎）", 60],
+    ["DEMO-RX-AMOX", "投薬（アモキシシリン）", 40],
   ];
   for (const [code, name, points] of rows) {
     m.add({ code, name, points, validFrom: SINCE });
@@ -135,4 +137,24 @@ export function calculateDemo(input: DemoEngineInput) {
 
 export function masterName(code: string, onDate: string): string {
   return master.findProcedure(code, onDate)?.name ?? code;
+}
+
+/**
+ * 処方監査（デモ）: 患者のアレルギー・既往と薬剤の禁忌をチェックする。
+ * 算定ルールとは独立したセーフティ層（本番は薬剤マスタの禁忌・相互作用データを参照）。
+ */
+export function auditPrescriptions(
+  procedures: PerformedProcedure[],
+  allergies: string[],
+): { severity: "error" | "warning"; ruleId: string; message: string }[] {
+  const issues: { severity: "error" | "warning"; ruleId: string; message: string }[] = [];
+  const hasPenicillinAllergy = allergies.some((a) => a.includes("ペニシリン"));
+  if (hasPenicillinAllergy && procedures.some((p) => p.procedureCode === "DEMO-RX-AMOX")) {
+    issues.push({
+      severity: "error",
+      ruleId: "rx-audit/penicillin",
+      message: "処方監査: ペニシリン系アレルギーの記録があります — アモキシシリンは禁忌です。代替薬（クリンダマイシン等）を検討してください",
+    });
+  }
+  return issues;
 }

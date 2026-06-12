@@ -1,5 +1,17 @@
 /** 会計画面: 算定結果 → 窓口負担 → 領収書・診療明細書（発行は法令上の義務）。 */
+import { useState } from "react";
+
+/** 厚労省標準様式の費用区分（領収証）。デモ値 */
+const RECEIPT_SECTIONS: [string, number][] = [
+  ["初・再診料", 55],
+  ["医学管理等", 110],
+  ["検査", 400],
+  ["処置（歯周治療）", 719],
+  ["手術", 0],
+];
+
 export function CheckoutScreen() {
+  const [preview, setPreview] = useState(false);
   return (
     <div style={{ maxWidth: 860 }}>
       <h2 className="section-title">会計待ち（1名）</h2>
@@ -32,10 +44,30 @@ export function CheckoutScreen() {
             <div className="pay-row"><span>負担割合</span><span className="v">3割</span></div>
             <div className="pay-row total"><span>窓口請求額</span><span className="v">3,850円</span></div>
             <div style={{ display: "flex", gap: 8, marginTop: 16, flexDirection: "column" }}>
-              <button type="button" className="btn primary lg">領収書・診療明細書を発行</button>
+              <button type="button" className="btn primary lg" onClick={() => setPreview(!preview)}>
+                領収書・診療明細書を発行{preview ? "（プレビューを閉じる）" : ""}
+              </button>
               <div className="tiny">明細書の無償交付は義務（療担規則）。標準様式（別紙様式5）で出力します。</div>
               <button type="button" className="btn">キャッシュレス決済（Phase 4 連携予定）</button>
             </div>
+            {preview && (
+              <div className="receipt-preview">
+                <div style={{ textAlign: "center", fontWeight: 800, marginBottom: 8 }}>領 収 証（プレビュー）</div>
+                <div className="tiny" style={{ textAlign: "center", marginBottom: 10 }}>
+                  すずき歯科クリニック ・ 2026年6月12日 ・ 佐藤 美咲 様
+                </div>
+                {RECEIPT_SECTIONS.map(([label, points]) => (
+                  <div className="pay-row" key={label} style={{ fontSize: 12.5 }}>
+                    <span>{label}</span><span className="v">{points.toLocaleString()} 点</span>
+                  </div>
+                ))}
+                <div className="pay-row" style={{ fontSize: 12.5 }}><span>保険合計</span><span className="v">1,284 点</span></div>
+                <div className="pay-row" style={{ fontSize: 12.5 }}><span>患者負担額（3割）</span><span className="v">3,850 円</span></div>
+                <div className="tiny" style={{ marginTop: 8 }}>
+                  ※ 厚労省標準様式の費用区分。明細書には診療行為の名称・点数を1行ずつ記載します。
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

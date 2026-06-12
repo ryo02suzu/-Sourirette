@@ -2,8 +2,13 @@
 import { useState } from "react";
 import { monthReceipts, receiptIssues } from "../data/mock.js";
 
+const AI_TEKIYO_DRAFT =
+  "義歯不適合により疼痛著明、咀嚼困難を認めたため同月2回目の調整を実施。" +
+  "右下臼歯部顎堤の骨吸収が顕著であり、リライニングでは対応困難と判断した。";
+
 export function ReceiptsScreen() {
   const [openId, setOpenId] = useState<string | null>("r2");
+  const [tekiyoDraft, setTekiyoDraft] = useState(false);
   const totalPoints = monthReceipts.reduce((s, r) => s + r.points, 0);
   const totalErrors = monthReceipts.reduce((s, r) => s + r.errors, 0);
   const totalWarnings = monthReceipts.reduce((s, r) => s + r.warnings, 0);
@@ -68,9 +73,22 @@ export function ReceiptsScreen() {
               <div className={`issue ${issue.severity}`} key={i}>
                 <span className="badge">{issue.severity === "error" ? "エラー" : "警告"}</span>
                 <span style={{ flex: 1 }}>{issue.message}</span>
+                {issue.message.includes("摘要欄") && (
+                  <button type="button" className="btn sm ghost-ai" onClick={() => setTekiyoDraft(!tekiyoDraft)}>✦ 摘要文案</button>
+                )}
                 <button type="button" className="btn sm">カルテへ</button>
               </div>
             ))}
+            {tekiyoDraft && openId === "r3" && (
+              <div className="ai-draft-box" style={{ padding: "12px 14px", marginTop: 10, fontSize: 12.5 }}>
+                <div className="ai-note" style={{ marginBottom: 6 }}>✦ カルテ記載から生成した摘要欄の下書き（確認・編集のうえ反映）</div>
+                {AI_TEKIYO_DRAFT}
+                <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                  <button type="button" className="btn sm primary">摘要欄に反映</button>
+                  <button type="button" className="btn sm">編集</button>
+                </div>
+              </div>
+            )}
             <div className="ai-note" style={{ marginTop: 10 }}>
               ✦ 将来: AI が返戻理由を解析し、修正候補を提案します（Phase 3）
             </div>

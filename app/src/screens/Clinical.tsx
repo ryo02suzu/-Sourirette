@@ -7,12 +7,16 @@ import { useMemo, useState } from "react";
 import { ToothChart } from "../components/ToothChart.js";
 import { AiPanel } from "../components/AiPanel.js";
 import { activeBridges, activePatientDx, activePatientTeeth, type DxItem, type ToothState } from "../data/mock.js";
-import { calculateDemo, DEMO_CODES } from "../billing-demo.js";
+import { auditPrescriptions, calculateDemo, DEMO_CODES, masterName } from "../billing-demo.js";
 import type { AiDraftResult } from "../services/ai.js";
 import { parseTooth, toJapaneseNotation } from "../../../src/domain/tooth.js";
 import type { PerformedProcedure } from "../../../src/domain/types.js";
 
 const TODAY = "2026-06-12";
+const PATIENT_ALLERGIES = ["ペニシリン系アレルギー"];
+
+/** 処置クイック追加（よく使うセット。コード・点数はサンプル） */
+const QUICK_PROCEDURES = ["DEMO-XRAY", "DEMO-PKEN", "DEMO-SCALING", "DEMO-SRP", "DEMO-TBI", "DEMO-RX-AMOX"];
 
 interface ProcItem extends PerformedProcedure {
   name: string;
@@ -97,18 +101,27 @@ export function ClinicalScreen() {
   const removeProcedure = (code: string) =>
     setProcedures((prev) => prev.filter((p) => p.procedureCode !== code));
 
-  const calc = useMemo(
-    () =>
-      calculateDemo({
-        visitType: "first",
-        visitDate: TODAY,
-        procedures,
-        diagnoses: dxList.map((d) => ({ diseaseCode: d.name, teeth: d.teeth, onsetDate: d.since })),
-      }),
-    [procedures, dxList],
-  );
+  const calc = useMemo(() => {
+    const result = calculateDemo({
+      visitType: "first",
+      visitDate: TODAY,
+      procedures,
+      diagnoses: dxList.map((d) => ({ diseaseCode: d.name, teeth: d.teeth, onsetDate: d.since })),
+    });
+    // 処方監査（薬剤の禁忌チェック）は算定とは独立のセーフティ層として合流
+    return { ...result, issues: [...result.issues, ...auditPrescriptions(procedures, PATIENT_ALLERGIES)] };
+  }, [procedures, dxList]);
 
   const hasError = calc.issues.some((i) => i.severity === "error");
+
+  const addQuickProcedure = (code: string) => {
+    if (finalized) return;
+    setProcedures((prev) =>
+      prev.some((p) => p.procedureCode === code)
+        ? prev
+        : [...prev, { procedureCode: code, name: masterName(code, TODAY), teeth: selectedTeeth.length > 0 ? [...selectedTeeth] : [], quantity: 1 }],
+    );
+  };
   const burden = Math.round((calc.totalPoints * 10 * 0.3) / 10) * 10; // 3割負担・10円単位（デモ）
 
   const finalize = async () => {
@@ -267,6 +280,20 @@ export function ClinicalScreen() {
               </span>
             </div>
             <div className="card-body" style={{ paddingTop: 8 }}>
+              <div className="proc-quick" style={{ marginBottom: 10 }}>
+                {QUICK_PROCEDURES.map((code) => (
+                  <button
+                    type="button"
+                    key={code}
+                    className="btn sm"
+                    disabled={finalized || procedures.some((p) => p.procedureCode === code)}
+                    title={selectedTeeth.length > 0 ? `部位: 選択中の${selectedTeeth.length}歯` : "部位なしで追加（歯式で選択すると部位付き）"}
+                    onClick={() => addQuickProcedure(code)}
+                  >
+                    ＋ {masterName(code, TODAY)}
+                  </button>
+                ))}
+              </div>
               <table className="claim-table">
                 <thead>
                   <tr><th>診療行為</th><th>部位</th><th style={{ textAlign: "right" }}>点数</th><th /></tr>

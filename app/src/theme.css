@@ -403,3 +403,115 @@ textarea, input, select { font-family: inherit; }
 .section-title { font-size: 15px; font-weight: 800; margin: 0 0 14px; display: flex; align-items: center; gap: 10px; }
 .muted { color: var(--ink-2); font-size: 12px; }
 .tiny { font-size: 11px; color: var(--ink-3); }
+
+/* ===== P検（歯周検査） ===== */
+.perio-arch { margin-bottom: 14px; min-width: 860px; }
+.perio-arch-title { font-size: 12px; font-weight: 700; color: var(--ink-2); margin-bottom: 6px; }
+.perio-grid { display: grid; gap: 2px; }
+.perio-corner { }
+.perio-th {
+  text-align: center; font-family: "Inter", sans-serif; font-size: 11.5px; font-weight: 700;
+  color: var(--ink-2); padding: 3px 0; border-radius: 5px; background: var(--surface-2);
+}
+.perio-th.sev-mild { background: var(--ok-soft); }
+.perio-th.sev-moderate { background: var(--warn-soft); color: var(--warn); }
+.perio-th.sev-severe { background: var(--error-soft); color: var(--error); }
+.perio-th.missing { opacity: 0.35; }
+.perio-rowlabel { font-size: 10.5px; color: var(--ink-3); display: flex; align-items: center; justify-content: flex-end; padding-right: 6px; font-weight: 600; }
+.perio-cell {
+  position: relative; border: 1px solid var(--line); border-radius: 5px; background: var(--surface);
+  display: flex; align-items: center; justify-content: center; height: 30px;
+}
+.perio-cell input {
+  width: 100%; height: 100%; border: none; background: transparent; text-align: center;
+  font-family: "Inter", sans-serif; font-size: 12.5px; font-weight: 600; color: var(--ink);
+  padding: 0; outline: none;
+}
+.perio-cell:focus-within { border-color: var(--brand); box-shadow: 0 0 0 2px var(--brand-soft); }
+.perio-cell.mid { background: var(--warn-soft); }
+.perio-cell.deep { background: var(--error-soft); }
+.perio-cell.missing { background: var(--surface-2); color: var(--ink-3); font-size: 10px; }
+.perio-cell .bop-dot {
+  position: absolute; top: 2px; right: 2px; width: 9px; height: 9px;
+  border-radius: 50%; border: 1.5px solid #e0a9a4; background: transparent; padding: 0;
+}
+.perio-cell.bop .bop-dot { background: var(--error); border-color: var(--error); }
+.voice-caption {
+  margin-bottom: 14px; padding: 10px 16px; border-radius: 10px;
+  background: var(--ai-soft); border: 1.5px dashed var(--ai-line);
+  font-size: 14px; font-weight: 600;
+}
+.voice-caption.live { animation: voicepulse 1.2s infinite; }
+@keyframes voicepulse { 0%,100% { border-color: var(--ai-line); } 50% { border-color: var(--ai); } }
+
+/* ===== 予約（アポイントブック） ===== */
+.apo-toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+.apo-date { font-size: 15px; font-weight: 800; }
+.apo-grid { display: grid; grid-template-columns: 64px repeat(3, 1fr); }
+.apo-timecol { border-right: 1px solid var(--line); }
+.apo-hour { font-size: 11px; color: var(--ink-3); text-align: right; padding-right: 8px; border-top: 1px solid var(--line); font-family: "Inter", sans-serif; }
+.apo-unitcol { border-right: 1px solid var(--line); min-width: 0; }
+.apo-unitcol:last-child { border-right: none; }
+.apo-unithead {
+  height: 40px; display: flex; align-items: center; justify-content: center;
+  font-size: 12.5px; font-weight: 700; color: var(--ink-2);
+  border-bottom: 1px solid var(--line); background: var(--surface-2);
+}
+.apo-unitbody { position: relative; }
+.apo-line { position: absolute; left: 0; right: 0; border-top: 1px solid var(--line); }
+.apo-block {
+  position: absolute; left: 5px; right: 5px;
+  border: 1px solid var(--line); border-left: 4px solid; border-radius: 8px;
+  padding: 5px 9px; text-align: left; overflow: hidden;
+  display: flex; flex-direction: column; gap: 1px;
+  box-shadow: var(--shadow-1); transition: box-shadow 0.15s;
+}
+.apo-block:hover { box-shadow: var(--shadow-2); z-index: 2; }
+.apo-block.active { outline: 2px solid var(--brand); }
+.apo-block .apo-time { font-family: "Inter", sans-serif; font-size: 10.5px; font-weight: 700; color: var(--ink-2); }
+.apo-block .apo-name { font-size: 13px; font-weight: 700; }
+.apo-block .apo-note { font-size: 11px; color: var(--ink-2); }
+
+/* ===== 患者管理 ===== */
+.search-box {
+  margin-left: auto; border: 1px solid var(--line-strong); border-radius: 8px;
+  padding: 7px 12px; font-size: 12.5px; width: 230px;
+}
+.search-box:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-soft); }
+.rece-table tr.row-active { background: var(--brand-soft); }
+.sticky-note {
+  background: #fff8dc; border: 1px solid #ead9a0; border-radius: 7px;
+  padding: 8px 12px; font-size: 12.5px; font-weight: 600;
+  box-shadow: 1px 2px 4px rgba(0,0,0,0.06);
+}
+.timeline { display: flex; flex-direction: column; gap: 12px; }
+.timeline-item { display: flex; gap: 10px; }
+.timeline-dot {
+  width: 10px; height: 10px; border-radius: 50%; background: var(--brand);
+  margin-top: 5px; flex-shrink: 0; box-shadow: 0 0 0 3px var(--brand-soft);
+}
+
+/* ===== CTI ポップアップ ===== */
+.cti-popup {
+  position: fixed; right: 22px; bottom: 22px; width: 320px; z-index: 50;
+  background: var(--surface); border-radius: 14px; box-shadow: var(--shadow-3);
+  overflow: hidden; animation: ctiin 0.25s ease-out;
+}
+@keyframes ctiin { from { transform: translateY(16px); opacity: 0; } to { transform: none; opacity: 1; } }
+.cti-head {
+  background: linear-gradient(135deg, #0b2e33, #0d3b38); color: #fff;
+  padding: 13px 16px; display: flex; gap: 11px; align-items: center;
+}
+.cti-ring { font-size: 22px; animation: ctiring 0.8s infinite; }
+@keyframes ctiring { 0%,100% { transform: rotate(0); } 25% { transform: rotate(-12deg); } 75% { transform: rotate(12deg); } }
+.cti-name { font-size: 15px; font-weight: 800; }
+.cti-close {
+  margin-left: auto; background: none; border: none; color: #9fb8b4; font-size: 18px;
+}
+.cti-body { padding: 12px 16px 16px; }
+
+/* ===== 会計プレビュー ===== */
+.receipt-preview {
+  margin-top: 14px; padding: 16px; border: 1.5px solid var(--line-strong);
+  border-radius: 10px; background: #fffdf8;
+}
