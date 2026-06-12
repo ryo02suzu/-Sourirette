@@ -1,0 +1,11 @@
+import { chromium } from "playwright";
+import { preview } from "vite";
+const server = await preview({ preview: { port: 4179 } });
+const browser = await chromium.launch();
+const page = await browser.newPage({ viewport: { width: 1600, height: 1100 }, deviceScaleFactor: 2 });
+await page.goto("http://localhost:4179");
+await page.waitForTimeout(700);
+await page.locator(".card:has(.odon-wrap)").screenshot({ path: "../shots/27-realistic-chart.png" });
+await browser.close();
+await server.close();
+process.exit(0);
