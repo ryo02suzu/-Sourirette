@@ -53,7 +53,7 @@ docs/                設計書・制度要件
 db/schema.sql        PostgreSQL スキーマ（追記専用カルテ・監査ログ・マスタ）
 src/domain/          ドメインモデル（歯式・患者・カルテ記録）
 src/billing/         算定エンジン（マスタ参照・算定ルール）
-src/receipt/         レセプト電算（UKE ファイル）出力の枠組み
+src/receipt/         レセプト電算（UKE ファイル）出力（レコード定義・Shift_JIS・ファイル組立）
 test/                ユニットテスト（node:test）
 ```
 
@@ -64,7 +64,7 @@ test/                ユニットテスト（node:test）
 ```bash
 npm install     # devDependencies（typescript / @types/node）のみ
 npm run build   # tsc でコンパイル
-npm test        # ビルド + node --test（13 テスト）
+npm test        # ビルド + node --test（48 テスト）
 ```
 
 ## 設計上の絶対原則

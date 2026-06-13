@@ -1,17 +1,16 @@
 /**
- * レセプト電算ファイル（UKE）出力の枠組み。
+ * レセプト電算ファイル（UKE）出力の直列化基盤。
  *
- * ⚠️ レコード種別ごとのフィールド定義（並び・桁・必須/任意）は、支払基金が公開する
- *    「レセプト電算処理システム 記録条件仕様（歯科用）」の最新版から転記して確定させる。
- *    このファイルは直列化の基盤（行の組み立て・検証フック）のみを提供し、
- *    フィールド仕様を推測で実装しない。
+ * 物理仕様の根拠: 「オンライン又は光ディスク等による請求に係る記録条件仕様（歯科用）
+ * 令和8年6月版」（docs/specs/R08bt1_3_kiroku_dental.pdf 第1章 3（3））
+ *   - ファイル名 RECEIPTS.UKE、CSV形式・可変長レコード
+ *   - 項目区切りはカンマ（位取りカンマ不可）、引用符（"）は使用しない
+ *   - 改行コードは CR+LF、最終レコードの改行コードの後に EOF コード（0x1A）
+ *   - 文字符号は Shift_JIS（JIS X 0201 ＋ JIS X 0208 附属書1）
  *
- * フォーマットの骨格（医科・歯科共通の構造）:
- *   - 1行 = 1レコード。先頭フィールドがレコード識別子（IR/RE/HO/SY/CO 等）。
- *   - フィールドはカンマ区切り、行末は CR+LF。
- *   - 文字コードは Shift_JIS（内部は UTF-8 で扱い、書き出し時にエンコードする。
- *     Node 標準には Shift_JIS エンコーダがないため、実装時に iconv-lite 等を導入する）。
+ * レコード種別ごとのフィールド定義と検証は records.ts、ファイル組み立ては build.ts。
  */
+import { encodeShiftJis } from "./shift-jis.js";
 
 export interface UkeRecord {
   /** レコード識別子（例: "IR", "RE"）。公式仕様の識別子のみ使用する */
@@ -24,7 +23,7 @@ export interface UkeRecord {
 export function serializeRecord(record: UkeRecord): string {
   const fields = record.fields.map((f) => (f === undefined ? "" : String(f)));
   for (const f of fields) {
-    if (f.includes(",") || f.includes("\r") || f.includes("\n")) {
+    if (f.includes(",") || f.includes('"') || f.includes("\r") || f.includes("\n") || f.includes("\x1a")) {
       throw new Error(`field contains forbidden character: ${JSON.stringify(f)}`);
     }
   }
@@ -34,4 +33,13 @@ export function serializeRecord(record: UkeRecord): string {
 /** レセプトファイル全体（レコード列）を直列化する。行末は CR+LF（公式仕様準拠） */
 export function serializeFile(records: UkeRecord[]): string {
   return records.map(serializeRecord).map((line) => line + "\r\n").join("");
+}
+
+/** RECEIPTS.UKE の中身として書き出すバイト列（Shift_JIS ＋ 末尾 EOF コード 0x1A） */
+export function encodeUkeFile(records: UkeRecord[]): Uint8Array {
+  const body = encodeShiftJis(serializeFile(records));
+  const out = new Uint8Array(body.length + 1);
+  out.set(body, 0);
+  out[body.length] = 0x1a;
+  return out;
 }
