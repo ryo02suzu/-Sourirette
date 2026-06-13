@@ -1,6 +1,8 @@
 /** レセプト画面（月次）: 点検 → エラー解消 → UKE出力 → オンライン請求。 */
 import { useState } from "react";
 import { monthReceipts, receiptIssues } from "../data/mock.js";
+import { useToast } from "../components/toast.js";
+import { downloadUke, generateDemoUke, type UkeExportResult } from "../uke-export.js";
 
 const AI_TEKIYO_DRAFT =
   "義歯不適合により疼痛著明、咀嚼困難を認めたため同月2回目の調整を実施。" +
@@ -9,9 +11,27 @@ const AI_TEKIYO_DRAFT =
 export function ReceiptsScreen({ onOpenChart }: { onOpenChart(): void }) {
   const [openId, setOpenId] = useState<string | null>("r2");
   const [tekiyoDraft, setTekiyoDraft] = useState(false);
+  const [uke, setUke] = useState<UkeExportResult | null>(null);
+  const toast = useToast();
   const totalPoints = monthReceipts.reduce((s, r) => s + r.points, 0);
   const totalErrors = monthReceipts.reduce((s, r) => s + r.errors, 0);
   const totalWarnings = monthReceipts.reduce((s, r) => s + r.warnings, 0);
+
+  // コアの算定エンジン→UKE橋渡し→Shift_JIS直列化を実際に通してファイルを生成する
+  const handleUkeExport = () => {
+    if (totalErrors > 0) {
+      toast("エラー（提出ブロック）が残っています。解消してから出力してください", "error");
+      return;
+    }
+    try {
+      const result = generateDemoUke();
+      setUke(result);
+      downloadUke(result.bytes);
+      toast(`RECEIPTS.UKE を生成しました（${result.recordCount}レコード / ${result.byteLength}バイト・Shift_JIS）`);
+    } catch (e) {
+      toast(`UKE生成に失敗しました: ${e instanceof Error ? e.message : String(e)}`, "error");
+    }
+  };
 
   return (
     <div>
@@ -30,8 +50,8 @@ export function ReceiptsScreen({ onOpenChart }: { onOpenChart(): void }) {
             <button
               type="button"
               className="btn"
-              disabled
-              title="記録条件仕様（歯科用）の取込後に有効化されます（Phase 3）"
+              onClick={handleUkeExport}
+              title="算定エンジン→記録条件仕様（歯科用）準拠のレコード生成→Shift_JIS出力までを実行します"
             >
               UKEファイル出力
             </button>
@@ -40,6 +60,33 @@ export function ReceiptsScreen({ onOpenChart }: { onOpenChart(): void }) {
             </button>
           </div>
         </div>
+        {uke && (
+          <div className="card-body" style={{ borderTop: "1px solid var(--line)", background: "var(--surface-2)" }}>
+            <div className="muted" style={{ fontWeight: 700, marginBottom: 6 }}>
+              生成された RECEIPTS.UKE（{uke.recordCount}レコード / {uke.byteLength}バイト・Shift_JIS・末尾EOF付き）
+            </div>
+            <div className="tiny muted" style={{ marginBottom: 6 }}>
+              算定エンジンが確定した点数（合計 {uke.totalPoints} 点）を、記録条件仕様（歯科用）令和8年6月版の
+              レコード定義どおりに直列化しています。⚠️点数はサンプル値（公式マスタ取込後に実点数へ）。
+            </div>
+            <pre
+              style={{
+                margin: 0,
+                padding: "10px 12px",
+                background: "var(--surface)",
+                border: "1px solid var(--line)",
+                borderRadius: 6,
+                fontSize: 11.5,
+                lineHeight: 1.6,
+                overflowX: "auto",
+                whiteSpace: "pre",
+              }}
+            >
+              {uke.text}
+            </pre>
+          </div>
+        )}
+
         <table className="rece-table">
           <thead>
             <tr><th>患者</th><th>保険</th><th style={{ textAlign: "right" }}>点数</th><th>点検結果</th><th /></tr>

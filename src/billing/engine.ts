@@ -38,6 +38,10 @@ export interface ClaimLine {
   points: number;
   quantity: number;
   teeth?: string[];
+  /** 別表20 診療識別コード（11初診/12再診/13管理/31X線/41-44処置/61-64補綴 等）。UKE の SS に転記 */
+  category?: string;
+  /** 加算コード（英数5桁）＋数量。UKE の SS の加算コード列に転記 */
+  additions?: { code: string; quantity?: number }[];
 }
 
 export interface CalculationIssue {
