@@ -66,7 +66,8 @@ export function ReceiptsScreen({ onOpenChart }: { onOpenChart(): void }) {
               生成された RECEIPTS.UKE（{uke.recordCount}レコード / {uke.byteLength}バイト・Shift_JIS・末尾EOF付き）
             </div>
             <div className="tiny muted" style={{ marginBottom: 6 }}>
-              算定エンジンが確定した点数（合計 {uke.totalPoints} 点）を、記録条件仕様（歯科用）令和8年6月版の
+              算定エンジンが確定した点数（合計 {uke.totalPoints} 点・診療実日数 {uke.visitDays} 日）を、月内の複数受診を
+              1枚に集約し（同一診療行為は算定日情報にマージ）、記録条件仕様（歯科用）令和8年6月版の
               レコード定義どおりに直列化しています。⚠️点数はサンプル値（公式マスタ取込後に実点数へ）。
             </div>
             <pre

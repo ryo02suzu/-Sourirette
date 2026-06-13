@@ -7,13 +7,21 @@
  *   - 歯式（部位）は傷病名部位レコード（HS）側に記録する。歯科診療行為レコード（SS）には
  *     歯式項目が存在しないため、ClaimLine.teeth は SS には出力しない（記録条件仕様準拠）。
  *
- * 対応範囲: 1受診（1日分）のレセプト生成。月内複数受診の集約（同一コードの算定日マージ・
- * 診療実日数の積み上げ）は呼び出し側の責務とする。
+ * 対応範囲:
+ *   - monthlyClaimToReceipt: 月内の複数受診を1レセプトに集約する（本来の月次レセプト）。
+ *     同一の診療行為（コード・診療識別・加算・点数が一致）を算定日情報にマージし、回数を
+ *     合算する（記録条件仕様: 算定日情報の合計＝回数）。診療実日数は受診日数で算出。
+ *   - claimToReceipt: 1受診分の薄いラッパー（単一受診のデモ・テスト用）。
+ *
+ * 既知の簡略化: SS の点数フィールドは ClaimLine.points（診療行為マスタの点数）をそのまま
+ * 記録する。同一レコードに加算を含める場合の点数は本来「診療行為＋加算の合算」だが、
+ * 加算の点数はデモのルールでは未計算のため、加算点数を含める運用は呼び出し側で point を
+ * 合算済みにすること（合計点数の内部整合: Σ(点数×回数)=totalPoints は保たれる）。
  */
-import type { CalculationResult } from "../billing/engine.js";
+import type { CalculationResult, ClaimLine } from "../billing/engine.js";
 import type { Diagnosis, Patient, Visit } from "../domain/types.js";
 import { fdiToShikiCode, type ToothCondition } from "../domain/tooth-code.js";
-import { buildHo, buildHs, buildRe, buildSs, type HsParams, type SsParams } from "./records.js";
+import { buildHo, buildHs, buildSs, buildRe, type HsParams, type ReParams, type SsParams } from "./records.js";
 import type { UkeRecord } from "./uke.js";
 import type { UkeReceipt } from "./build.js";
 import { determineBurden, determineReceiptType, sexCode, type PayerSet, type ReceiptScheme } from "./receipt-type.js";
@@ -28,11 +36,18 @@ function dayOfMonth(iso: string): number {
   return Number(iso.slice(8, 10));
 }
 
-export interface ClaimReceiptInput {
-  patient: Patient;
+/** 1受診分の算定結果 */
+export interface VisitClaim {
   visit: Visit;
-  diagnoses: Diagnosis[];
   result: CalculationResult;
+}
+
+export interface MonthlyReceiptInput {
+  patient: Patient;
+  /** 月内の受診（同一診療月であること）。1以上 */
+  visits: VisitClaim[];
+  /** 当月の傷病名（重複は集約）。1以上必要 */
+  diagnoses: Diagnosis[];
   /** レセプト記録順の番号（1から昇順） */
   receiptNo: number;
   /** レセプト種別の決定に使う保険枠（別表6） */
@@ -47,12 +62,9 @@ export interface ClaimReceiptInput {
   chartNo?: string;
   /** 保険者情報（HO レコード） */
   insurer: { insurerNo: string; symbol?: string; number: string };
-  /** 診療実日数（このレセプトの受診日数）。省略時は1 */
-  actualDays?: number;
   /**
-   * 各 ClaimLine に適用する負担区分（別表21）。省略時は保険枠から決定
-   * （医保/後期＝医保のみ、公費単独＝公費①のみ）。公費の按分が行ごとに異なる場合は
-   * 呼び出し側で行ごとに指定する。
+   * 各 ClaimLine に適用する負担区分（別表21）。省略時は保険枠から決定。
+   * 公費の按分が行ごとに異なる場合は呼び出し側で行ごとに指定する。
    */
   burden?: string;
   /** 傷病名部位の歯式に用いる状態コード（既定: 現存歯）。欠損症等は呼び出し側で指定 */
@@ -65,7 +77,6 @@ function defaultBurden(scheme: ReceiptScheme, publicExpenseCount: number): strin
     scheme.kind === "public-only"
       ? { medical: false, publicExpenses: [true] }
       : { medical: true, publicExpenses: Array.from({ length: publicExpenseCount }, () => true) };
-  // 公費併用の按分は行単位で異なり得るが、既定は全管掌が当該行を負担する想定
   return determineBurden(payers);
 }
 
@@ -79,36 +90,100 @@ export function diagnosisToHs(dx: Diagnosis, toothCondition: ToothCondition): Uk
   return buildHs(params);
 }
 
-/** ClaimLine（1行＝1受診日）→ SS レコード */
-export function claimLineToSs(
-  line: CalculationResult["lines"][number],
-  burden: string,
-  day: number,
-): UkeRecord {
+/** 同一の算定単位（マージ可能）かを表すキー */
+function lineKey(line: ClaimLine): string {
+  const additions = (line.additions ?? []).map((a) => `${a.code}:${a.quantity ?? ""}`).join("|");
+  return [line.procedureCode, line.category ?? "", line.points, additions].join("#");
+}
+
+interface MergedLine {
+  line: ClaimLine;
+  /** 日（1〜31）→ 当日の回数 */
+  daily: Map<number, number>;
+}
+
+/**
+ * 月内の全受診の ClaimLine を同一算定単位ごとにマージする。
+ * 同一コード・診療識別・加算・点数の行は1つの SS にまとめ、受診日ごとに算定日情報を積む。
+ */
+function mergeMonthlyLines(visits: readonly VisitClaim[]): MergedLine[] {
+  const merged = new Map<string, MergedLine>();
+  const order: string[] = [];
+  for (const { visit, result } of visits) {
+    const day = dayOfMonth(visit.visitDate);
+    for (const line of result.lines) {
+      const key = lineKey(line);
+      let entry = merged.get(key);
+      if (entry === undefined) {
+        entry = { line, daily: new Map() };
+        merged.set(key, entry);
+        order.push(key);
+      }
+      entry.daily.set(day, (entry.daily.get(day) ?? 0) + line.quantity);
+    }
+  }
+  return order.map((k) => merged.get(k)!);
+}
+
+/** マージ済みの行 → SS レコード */
+function mergedLineToSs(entry: MergedLine, burden: string): UkeRecord {
+  const daily: Record<number, number> = {};
+  let count = 0;
+  for (const [day, n] of entry.daily) {
+    daily[day] = n;
+    count += n;
+  }
   const params: SsParams = {
     burden,
-    code: line.procedureCode,
-    points: line.points,
-    count: line.quantity,
-    daily: { [day]: line.quantity },
+    code: entry.line.procedureCode,
+    points: entry.line.points,
+    count,
+    daily,
   };
-  if (line.category !== undefined) params.category = line.category;
-  if (line.additions && line.additions.length > 0) {
-    params.additions = line.additions.map((a) => (a.quantity !== undefined ? { code: a.code, quantity: a.quantity } : { code: a.code }));
+  if (entry.line.category !== undefined) params.category = entry.line.category;
+  if (entry.line.additions && entry.line.additions.length > 0) {
+    params.additions = entry.line.additions.map((a) =>
+      a.quantity !== undefined ? { code: a.code, quantity: a.quantity } : { code: a.code },
+    );
   }
   return buildSs(params);
 }
 
+/** 傷病名を傷病名コード＋部位＋修飾語で重複排除する */
+function dedupDiagnoses(diagnoses: readonly Diagnosis[]): Diagnosis[] {
+  const seen = new Set<string>();
+  const out: Diagnosis[] = [];
+  for (const dx of diagnoses) {
+    const key = [dx.diseaseCode, (dx.teeth ?? []).join(","), (dx.modifierCodes ?? []).join(",")].join("#");
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(dx);
+  }
+  return out;
+}
+
 /**
- * 算定結果から1受診分の UKE レセプト（IR を除く RE〜SS）を構築する。
- * 合計点数は CalculationResult.totalPoints をそのまま保険者レコードに記録する。
+ * 月内の複数受診を1枚のレセプト（IR を除く RE〜SS）に集約する。
+ * 合計点数は各受診の totalPoints の総和、診療実日数は受診日数。
  */
-export function claimToReceipt(input: ClaimReceiptInput): UkeReceipt {
+export function monthlyClaimToReceipt(input: MonthlyReceiptInput): UkeReceipt {
+  if (input.visits.length === 0) throw new Error("受診（visits）は1件以上必要です");
+  const months = new Set(input.visits.map((v) => v.visit.visitDate.slice(0, 7)));
+  if (months.size > 1) {
+    throw new Error(`1レセプトは同一診療月の受診のみ（混在: ${[...months].join(", ")}）`);
+  }
+  const month = [...months][0]!; // YYYY-MM
   const pub = input.publicExpenseCount ?? 0;
-  const day = dayOfMonth(input.visit.visitDate);
   const burden = input.burden ?? defaultBurden(input.scheme, pub);
   const toothCondition = input.toothCondition ?? "present";
-  const actualDays = input.actualDays ?? 1;
+
+  const diagnoses = dedupDiagnoses(input.diagnoses);
+  if (diagnoses.length === 0) {
+    throw new Error("レセプトには傷病名部位レコード（HS）が1以上必要です。傷病名を登録してください");
+  }
+
+  const distinctDays = new Set(input.visits.map((v) => v.visit.visitDate)).size;
+  const totalPoints = input.visits.reduce((sum, v) => sum + v.result.totalPoints, 0);
 
   const receiptType = determineReceiptType({
     scheme: input.scheme,
@@ -116,38 +191,85 @@ export function claimToReceipt(input: ClaimReceiptInput): UkeReceipt {
     admission: false, // 歯科の一次請求デモは入院外
   });
 
-  const re = buildRe({
+  const earliestOnset = diagnoses.reduce((min, d) => (d.onsetDate < min ? d.onsetDate : min), diagnoses[0]!.onsetDate);
+  const reParams: ReParams = {
     receiptNo: input.receiptNo,
     receiptType,
-    treatmentMonth: input.visit.visitDate.slice(0, 7).replace("-", ""),
+    treatmentMonth: month.replace("-", ""),
     name: input.name,
     sex: sexCode(input.patient.sex),
     birthDate: compactDate(input.patient.birthDate),
-    treatmentStartDate: input.diagnoses.length > 0
-      ? compactDate(input.diagnoses.reduce((min, d) => (d.onsetDate < min ? d.onsetDate : min), input.diagnoses[0]!.onsetDate))
-      : compactDate(input.visit.visitDate),
+    treatmentStartDate: compactDate(earliestOnset),
     outcome: "1",
-    ...(input.chartNo !== undefined ? { chartNo: input.chartNo } : {}),
-    ...(input.kanaName !== undefined ? { kanaName: input.kanaName } : {}),
-  });
+  };
+  if (input.chartNo !== undefined) reParams.chartNo = input.chartNo;
+  if (input.kanaName !== undefined) reParams.kanaName = input.kanaName;
+  const re = buildRe(reParams);
 
   const ho = buildHo({
     insurerNo: input.insurer.insurerNo,
     ...(input.insurer.symbol !== undefined ? { symbol: input.insurer.symbol } : {}),
     number: input.insurer.number,
-    actualDays,
-    totalPoints: input.result.totalPoints,
+    actualDays: distinctDays,
+    totalPoints,
   });
 
-  const hs = input.diagnoses.map((dx) => diagnosisToHs(dx, toothCondition));
-  if (hs.length === 0) {
-    throw new Error("レセプトには傷病名部位レコード（HS）が1以上必要です。傷病名を登録してください");
-  }
+  const hs = diagnoses.map((dx) => diagnosisToHs(dx, toothCondition));
 
-  const details = input.result.lines.map((line) => claimLineToSs(line, burden, day));
+  const details = mergeMonthlyLines(input.visits).map((entry) => mergedLineToSs(entry, burden));
   if (details.length === 0) {
     throw new Error("算定結果が空です（SS等の診療行為レコードが1以上必要）");
   }
 
   return { re, ho, hs, details };
+}
+
+// ---- 単一受診のラッパー（既存テスト・デモ互換） ----
+
+export interface ClaimReceiptInput {
+  patient: Patient;
+  visit: Visit;
+  diagnoses: Diagnosis[];
+  result: CalculationResult;
+  receiptNo: number;
+  scheme: ReceiptScheme;
+  publicExpenseCount?: number;
+  name: string;
+  kanaName?: string;
+  chartNo?: string;
+  insurer: { insurerNo: string; symbol?: string; number: string };
+  /** 診療実日数（省略時は1） */
+  actualDays?: number;
+  burden?: string;
+  toothCondition?: ToothCondition;
+}
+
+/** 1受診分の算定結果から UKE レセプトを構築する（monthlyClaimToReceipt の単一受診版）。 */
+export function claimToReceipt(input: ClaimReceiptInput): UkeReceipt {
+  const monthlyInput: MonthlyReceiptInput = {
+    patient: input.patient,
+    visits: [{ visit: input.visit, result: input.result }],
+    diagnoses: input.diagnoses,
+    receiptNo: input.receiptNo,
+    scheme: input.scheme,
+    name: input.name,
+    insurer: input.insurer,
+  };
+  if (input.publicExpenseCount !== undefined) monthlyInput.publicExpenseCount = input.publicExpenseCount;
+  if (input.kanaName !== undefined) monthlyInput.kanaName = input.kanaName;
+  if (input.chartNo !== undefined) monthlyInput.chartNo = input.chartNo;
+  if (input.burden !== undefined) monthlyInput.burden = input.burden;
+  if (input.toothCondition !== undefined) monthlyInput.toothCondition = input.toothCondition;
+  const receipt = monthlyClaimToReceipt(monthlyInput);
+  // 単一受診で actualDays を明示指定したい場合は HO を作り直す
+  if (input.actualDays !== undefined && receipt.ho !== undefined) {
+    receipt.ho = buildHo({
+      insurerNo: input.insurer.insurerNo,
+      ...(input.insurer.symbol !== undefined ? { symbol: input.insurer.symbol } : {}),
+      number: input.insurer.number,
+      actualDays: input.actualDays,
+      totalPoints: input.result.totalPoints,
+    });
+  }
+  return receipt;
 }

@@ -18,7 +18,7 @@ import {
 import { InMemoryMaster } from "../../src/billing/master.js";
 import { createBasicVisitRule } from "../../src/billing/rules/basic-visit.js";
 import type { Diagnosis, Patient, Visit } from "../../src/domain/types.js";
-import { claimToReceipt } from "../../src/receipt/from-claim.js";
+import { monthlyClaimToReceipt, type VisitClaim } from "../../src/receipt/from-claim.js";
 import { assembleUkeFile, type UkeFileInput } from "../../src/receipt/build.js";
 import { encodeUkeFile, serializeFile } from "../../src/receipt/uke.js";
 
@@ -81,35 +81,50 @@ export interface UkeExportResult {
   recordCount: number;
   byteLength: number;
   totalPoints: number;
+  /** 診療実日数（受診日数） */
+  visitDays: number;
 }
 
-/**
- * デモ症例（初診＋パノラマ＋エックス線診断、う蝕の傷病名）を算定エンジンで計算し、
- * 1件のレセプトとして RECEIPTS.UKE を生成する。
- */
-export function generateDemoUke(): UkeExportResult {
-  const patient: Patient = { id: "demo", birthDate: "1980-06-30", sex: "F" };
-  const visit: Visit = { id: "demo-visit", patientId: "demo", visitDate: "2026-06-12", visitType: "first" };
-  const diagnoses: Diagnosis[] = [{ diseaseCode: "5250001", teeth: ["16"], onsetDate: "2026-06-05" }];
-
+/** 1受診分をエンジンで計算する */
+function calcVisit(
+  patient: Patient,
+  visitDate: string,
+  visitType: "first" | "followup",
+  procedureCodes: string[],
+  diagnoses: Diagnosis[],
+): VisitClaim {
+  const visit: Visit = { id: `demo-${visitDate}`, patientId: patient.id, visitDate, visitType };
   const result = engine.calculate({
     patient,
     visit,
-    procedures: [
-      { procedureCode: "305000110", quantity: 1 },
-      { procedureCode: "305004010", quantity: 1 },
-    ],
+    procedures: procedureCodes.map((procedureCode) => ({ procedureCode, quantity: 1 })),
     diagnoses,
     history: { countInMonth: () => 0 },
     facility: { has: () => false },
     master,
   });
+  return { visit, result };
+}
 
-  const receipt = claimToReceipt({
+/**
+ * デモ症例を算定エンジンで計算し、1か月分（複数受診）のレセプトとして RECEIPTS.UKE を生成する。
+ *   - 6/5 初診: 歯科初診料＋パノラマ＋エックス線写真診断
+ *   - 6/12, 6/19 再診: 歯科再診料（同一コードは算定日情報にマージ・回数2）
+ */
+export function generateDemoUke(): UkeExportResult {
+  const patient: Patient = { id: "demo", birthDate: "1980-06-30", sex: "F" };
+  const diagnoses: Diagnosis[] = [{ diseaseCode: "5250001", teeth: ["16"], onsetDate: "2026-06-05" }];
+
+  const visits: VisitClaim[] = [
+    calcVisit(patient, "2026-06-05", "first", ["305000110", "305004010"], diagnoses),
+    calcVisit(patient, "2026-06-12", "followup", [], diagnoses),
+    calcVisit(patient, "2026-06-19", "followup", [], diagnoses),
+  ];
+
+  const receipt = monthlyClaimToReceipt({
     patient,
-    visit,
+    visits,
     diagnoses,
-    result,
     receiptNo: 1,
     scheme: { kind: "medical", beneficiary: "family" },
     name: "基金　花子",
@@ -117,6 +132,8 @@ export function generateDemoUke(): UkeExportResult {
     chartNo: "DEMO-0001",
     insurer: { insurerNo: "01130012", symbol: "11010203", number: "123" },
   });
+  const totalPoints = visits.reduce((s, v) => s + v.result.totalPoints, 0);
+  const visitDays = new Set(visits.map((v) => v.visit.visitDate)).size;
 
   const facility: UkeFileInput["facility"] = {
     payer: "1", // 別表1: 支払基金
@@ -128,12 +145,14 @@ export function generateDemoUke(): UkeExportResult {
   };
 
   const records = assembleUkeFile({ facility, receipts: [receipt] });
+  const bytes = encodeUkeFile(records);
   return {
     text: serializeFile(records).replace(/\r\n/g, "\n"),
-    bytes: encodeUkeFile(records),
+    bytes,
     recordCount: records.length,
-    byteLength: encodeUkeFile(records).length,
-    totalPoints: result.totalPoints,
+    byteLength: bytes.length,
+    totalPoints,
+    visitDays,
   };
 }
 
