@@ -37,14 +37,15 @@ export interface PerformedProcedure {
   quantity: number;
 }
 
-/** 診療日時点の年齢（加算の年齢条件などに使用） */
+/** 診療日時点の年齢（加算の年齢条件などに使用）。
+ *  Date を介さず YYYY-MM-DD を数値で比較する（new Date のUTC解釈による境界日のずれを避け、
+ *  実行環境のタイムゾーンに依存せず決定的にする）。 */
 export function ageAt(birthDate: string, onDate: string): number {
-  const birth = new Date(birthDate);
-  const on = new Date(onDate);
-  let age = on.getFullYear() - birth.getFullYear();
-  const beforeBirthday =
-    on.getMonth() < birth.getMonth() ||
-    (on.getMonth() === birth.getMonth() && on.getDate() < birth.getDate());
-  if (beforeBirthday) age -= 1;
+  const b = birthDate.split("-").map(Number);
+  const o = onDate.split("-").map(Number);
+  const [by, bm, bd] = [b[0] ?? 0, b[1] ?? 0, b[2] ?? 0];
+  const [oy, om, od] = [o[0] ?? 0, o[1] ?? 0, o[2] ?? 0];
+  let age = oy - by;
+  if (om < bm || (om === bm && od < bd)) age -= 1;
   return age;
 }

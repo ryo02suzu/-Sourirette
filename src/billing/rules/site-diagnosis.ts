@@ -20,6 +20,9 @@ export function createSiteDiagnosisRule(validFrom: string, validTo?: string): Ru
       for (const dx of ctx.diagnoses) {
         for (const t of dx.teeth ?? []) diagnosisTeeth.add(t);
       }
+      // 歯番を持つ傷病名が1つも無い（全顎・1口腔・顎単位の病名のみ）場合は、歯単位での
+      // 突合ができない。ここで全処置を不一致扱いにすると誤検知になるためスキップする。
+      if (diagnosisTeeth.size === 0) return { issues: [] };
 
       const issues: RuleOutput["issues"] = [];
       for (const proc of ctx.procedures) {

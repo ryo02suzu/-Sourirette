@@ -259,7 +259,7 @@ export function createInclusionGroupRule(
         for (const group of groups) {
           for (const parent of parentsByGroup.get(group)!) {
             if (parent !== p.procedureCode && isPresent(parent)) {
-              issues.push({ severity: "error", ruleId: rule.id, procedureCode: p.procedureCode, message: `${p.procedureCode} は ${parent} に包括され別途算定できません（電子点数表 包括）` });
+              issues.push({ severity: "error", ruleId: rule.id, procedureCode: p.procedureCode, excludesFromBilling: true, message: `${p.procedureCode} は ${parent} に包括され別途算定できません（電子点数表 包括）` });
               flagged = true;
               break;
             }

@@ -7,11 +7,13 @@ import { decodeUkeFile, encodeUkeFile, parseFile, parseRecord, serializeRecord }
 import { assembleUkeFile, type UkeReceipt } from "../src/receipt/build.js";
 import { buildCo, buildHo, buildHs, buildRe, buildSs } from "../src/receipt/records.js";
 import {
+  dailyTotalMatchesCount,
   isSubmittable,
   isValidPayerNumberCheckDigit,
   validateUkeRecords,
   type ValidationIssue,
 } from "../src/receipt/validate.js";
+import type { UkeRecord } from "../src/receipt/uke.js";
 import { buildResubmissionFile } from "../src/receipt/resubmit.js";
 import { fdiToShikiCode } from "../src/domain/tooth-code.js";
 import { CalculationEngine } from "../src/billing/engine.js";
@@ -235,4 +237,18 @@ test("部位突合: 全ての処置歯が病名部位に含まれれば指摘な
     master: new InMemoryMaster(),
   });
   assert.equal(result.issues.length, 0);
+});
+
+test("回数×算定日 突合: IY は医薬品区分を挟むため回数位置がずれる（誤reject防止）", () => {
+  // 算定日31項目の合計=2、回数=2。IY は [..., 回数, 医薬品区分, d1..d31]
+  const daily = Array(31).fill("0"); daily[4] = "1"; daily[9] = "1"; // 2日分
+  const iy: UkeRecord = { identifier: "IY", fields: ["11", "620002210", "100", "2", "3", ...daily] };
+  //                                          診療識別 医薬品コード 点数 回数 医薬品区分 daily…
+  assert.equal(dailyTotalMatchesCount(iy), true, "IYの回数を医薬品区分と取り違えている");
+  // SS（医薬品区分なし）: [..., 回数, d1..d31]
+  const ss: UkeRecord = { identifier: "SS", fields: ["11", "301000110", "272", "2", ...daily] };
+  assert.equal(dailyTotalMatchesCount(ss), true);
+  // 不一致は false
+  const bad: UkeRecord = { identifier: "SS", fields: ["11", "301000110", "272", "5", ...daily] };
+  assert.equal(dailyTotalMatchesCount(bad), false);
 });

@@ -49,6 +49,12 @@ export interface CalculationIssue {
   ruleId: string;
   message: string;
   procedureCode?: string;
+  /**
+   * この procedureCode の算定行を請求対象から除外すべきことを示す（合計点数・UKEから外す）。
+   * 包括（子は親に含まれるため別途算定不可）など、除外が一意に確定する場合のみ true。
+   * 背反のように「どちらを残すか」が判断を要する場合は付けない（フラグのみ）。
+   */
+  excludesFromBilling?: boolean;
 }
 
 export interface CalculationResult {
@@ -75,7 +81,7 @@ export class CalculationEngine {
   constructor(private readonly rules: Rule[]) {}
 
   calculate(ctx: CalculationContext): CalculationResult {
-    const lines: ClaimLine[] = [];
+    const allLines: ClaimLine[] = [];
     const issues: CalculationIssue[] = [];
 
     for (const rule of this.rules) {
@@ -84,9 +90,14 @@ export class CalculationEngine {
         continue;
       }
       const out = rule.evaluate(ctx);
-      if (out.lines) lines.push(...out.lines);
+      if (out.lines) allLines.push(...out.lines);
       if (out.issues) issues.push(...out.issues);
     }
+
+    // 包括等で「請求対象から除外」と確定した診療行為コードは、合計点数・請求行から外す
+    // （別途算定できないものを点数に積むと過剰請求＝返戻になるため）。指摘は issues に残す。
+    const excluded = new Set(issues.filter((i) => i.excludesFromBilling && i.procedureCode !== undefined).map((i) => i.procedureCode!));
+    const lines = excluded.size === 0 ? allLines : allLines.filter((l) => !excluded.has(l.procedureCode));
 
     const totalPoints = lines.reduce((sum, l) => sum + l.points * l.quantity, 0);
     return { lines, issues, totalPoints };

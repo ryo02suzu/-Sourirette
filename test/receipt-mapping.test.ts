@@ -229,6 +229,24 @@ test("月次集約: 初診1回＋再診2回 → 診療実日数3・再診を1レ
   assert.equal(re[78 + 18], "1"); // 19日に1
 });
 
+test("月次集約: 算定行ゼロの受診は診療実日数に数えない（審査整合）", () => {
+  const emptyVisit: VisitClaim = {
+    visit: { id: "v-empty", patientId: "p1", visitDate: "2026-06-26", visitType: "followup" },
+    result: { lines: [], issues: [], totalPoints: 0 },
+  };
+  const receipt = monthlyClaimToReceipt({
+    patient: { id: "p1", birthDate: "1980-06-30", sex: "F" },
+    visits: [makeVisit("2026-06-05", "first"), emptyVisit], // 6/26 は算定ゼロ
+    diagnoses: [{ diseaseCode: "5250001", teeth: ["16"], onsetDate: "2026-06-05" }],
+    receiptNo: 1,
+    scheme: { kind: "medical", beneficiary: "family" },
+    name: "基金　花子",
+    insurer: { insurerNo: "01130012", number: "123" },
+  });
+  // 診療実日数=1（6/5のみ。6/26は算定行ゼロなので除外）
+  assert.equal(serializeRecord(receipt.ho!), "HO,01130012,,123,1,272,,,,,,,,");
+});
+
 test("月次集約: 診療月の混在は拒否", () => {
   assert.throws(
     () =>

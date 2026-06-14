@@ -182,7 +182,9 @@ export function monthlyClaimToReceipt(input: MonthlyReceiptInput): UkeReceipt {
     throw new Error("レセプトには傷病名部位レコード（HS）が1以上必要です。傷病名を登録してください");
   }
 
-  const distinctDays = new Set(input.visits.map((v) => v.visit.visitDate)).size;
+  // 診療実日数は「実際に算定行が生じた日」で数える。算定行ゼロの受診（処置未入力・
+  // 全行が包括除外 等）は 算定日情報に現れないため、診療実日数にも含めない（審査整合）。
+  const distinctDays = new Set(input.visits.filter((v) => v.result.lines.length > 0).map((v) => v.visit.visitDate)).size;
   const totalPoints = input.visits.reduce((sum, v) => sum + v.result.totalPoints, 0);
 
   const receiptType = determineReceiptType({

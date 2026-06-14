@@ -85,16 +85,17 @@ function splitReceipts(records: UkeRecord[]): ReceiptGroup[] {
   return groups;
 }
 
-/** 算定日情報（1〜31日）の合計が回数と一致するか（SS/SI/IY/TO） */
-function dailyTotalMatchesCount(record: UkeRecord): boolean | undefined {
-  // 各レコードの末尾31項目が算定日情報、その直前が回数（IY は医薬品区分が間に入る点に注意）
+/** 算定日情報（1〜31日）の合計が回数と一致するか（SS/SI/IY/TO）。export はテスト用 */
+export function dailyTotalMatchesCount(record: UkeRecord): boolean | undefined {
+  // 末尾31項目が算定日情報。その直前が回数だが、IY だけは 回数 と 算定日 の間に
+  // 「医薬品区分」が1項目入るため、回数は1つ手前（末尾から33番目）になる。
   const f = record.fields;
   if (f.length < 32) return undefined;
   const daily = f.slice(f.length - 31).map((x) => Number(x || 0));
   const sum = daily.reduce((a, b) => a + b, 0);
   if (sum === 0) return undefined; // 未来院請求等で算定日省略のケースは判定対象外
-  // 回数は算定日情報の直前項目
-  const count = Number(f[f.length - 32] || 0);
+  const countOffset = record.identifier === "IY" ? 33 : 32; // IY は医薬品区分の分だけ手前
+  const count = Number(f[f.length - countOffset] || 0);
   return sum === count;
 }
 

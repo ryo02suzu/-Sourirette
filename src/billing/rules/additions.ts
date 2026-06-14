@@ -53,13 +53,19 @@ export function createAdditionRule(
     validFrom,
     evaluate(ctx: CalculationContext): RuleOutput {
       // 初診料/再診料が実際に算定されているか（やっていない初再診に加算しない）
-      let base: "初診" | "再診" | undefined;
+      let hasShoshin = false;
+      let hasSaishin = false;
       for (const p of ctx.procedures) {
         const kubun = codeToKubun.get(p.procedureCode);
         if (kubun === undefined) continue;
-        if (SHOSHIN_KUBUN.has(kubun)) { base = "初診"; break; }
-        if (SAISHIN_KUBUN.has(kubun)) base = "再診";
+        if (SHOSHIN_KUBUN.has(kubun)) hasShoshin = true;
+        else if (SAISHIN_KUBUN.has(kubun)) hasSaishin = true;
       }
+      // 初診と再診が同日に併存するのは不正。自動加算は付けず、競合を指摘するに留める
+      if (hasShoshin && hasSaishin) {
+        return { issues: [{ severity: "error", ruleId: rule.id, message: "同日に初診料と再診料が併算定されています（どちらか一方のみ）" }] };
+      }
+      const base: "初診" | "再診" | undefined = hasShoshin ? "初診" : hasSaishin ? "再診" : undefined;
       if (base === undefined) return {};
 
       const timeClass: TimeClass = ctx.visit.timeClass ?? "regular";
