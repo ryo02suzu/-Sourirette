@@ -20,7 +20,7 @@ const sources: OfficialDataSources = {
   hojoMaster: buf("data/tensuhyo/01_hojo_master.csv"),
   hokatsu: buf("data/tensuhyo/02_hokatsu.csv"),
   betsu1Csv: readFileSync(join(ROOT, "data/masters/betsu1_shika_20260601.csv"), "utf-8"),
-  diseaseMaster: buf("data/masters/hb_20260601.txt"),
+  diseaseMasters: [buf("data/masters/b_20260601.txt"), buf("data/masters/hb_20260601.txt")],
   asOf: "2026-06-12",
 };
 const loaded = loadOfficialEngine(sources);

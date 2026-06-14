@@ -50,8 +50,12 @@ export interface OfficialDataSources {
   hokatsu: Uint8Array;
   /** 別表Ⅰ（歯科）摘要欄コメント（UTF-8 CSV） */
   betsu1Csv: string;
-  /** 歯科傷病名マスタ（hb*.txt, Shift_JIS）。省略時は傷病名検証なし */
-  diseaseMaster?: Uint8Array;
+  /**
+   * 傷病名マスタ（Shift_JIS）。複数指定するとコードの和集合で検証する。
+   * 歯科の傷病名は歯科傷病名マスタ(hb)と全傷病名マスタ(b)に分かれて存在するため
+   * （例: 慢性歯周炎=hbのみ / 欠損歯=bのみ）、両方を渡さないと誤検知する。
+   */
+  diseaseMasters?: Uint8Array[];
   /** 適用判定の基準日（既定は当日） */
   asOf?: string;
 }
@@ -115,9 +119,8 @@ export function loadOfficialEngine(src: OfficialDataSources, validFrom = "2024-0
   const codeToKubun = buildCodeToKubun(masterText);
   const betsu1Entries = parseBetsu1(src.betsu1Csv);
   const betsu1Index = indexByKubun(betsu1Entries);
-  const diseaseIndex = src.diseaseMaster !== undefined
-    ? buildDiseaseIndex(parseDiseaseMaster(decodeDiseaseMaster(src.diseaseMaster)))
-    : new Map<string, DiseaseRow>();
+  const diseaseRows = (src.diseaseMasters ?? []).flatMap((m) => parseDiseaseMaster(decodeDiseaseMaster(m)));
+  const diseaseIndex = buildDiseaseIndex(diseaseRows);
 
   const engine = new CalculationEngine([
     pricingRule(validFrom),
