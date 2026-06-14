@@ -73,6 +73,32 @@ test("製品API: 会計（費用区分別集計＋明細）が返る", () => {
   assert.equal(r.accounting.totalPoints, r.totalPoints);
 });
 
+test("製品API: 算定エンジンの指摘がalgorithmIssuesに出る（初診を月2回→回数違反）", () => {
+  const r = processReceipt(loaded, {
+    ...baseInput,
+    visits: [
+      { date: "2026-06-02", visitType: "first", procedureCodes: ["301000110"] },
+      { date: "2026-06-20", visitType: "first", procedureCodes: ["301000110"] },
+    ],
+  });
+  assert.ok(r.algorithmIssues.some((i) => i.procedureCode === "301000110" && i.message.includes("月1回")));
+});
+
+test("製品API: マスタに無いコードは黙って落とさず指摘する", () => {
+  const r = processReceipt(loaded, {
+    ...baseInput,
+    visits: [{ date: "2026-06-05", visitType: "first", procedureCodes: ["301000110", "999999999"] }],
+  });
+  assert.equal(r.totalPoints, 272); // 有効分は算定
+  assert.ok(r.algorithmIssues.some((i) => i.procedureCode === "999999999" && i.message.includes("存在しません")));
+});
+
+test("製品API: 必須欠落は分かりやすいエラー", () => {
+  assert.throws(() => processReceipt(loaded, { ...baseInput, name: "" }), /name（氏名）は必須/);
+  assert.throws(() => processReceipt(loaded, { ...baseInput, visits: [] }), /1件以上/);
+  assert.throws(() => processReceipt(loaded, { ...baseInput, diagnoses: [] }), /diagnoses/);
+});
+
 test("製品API: copay指定で窓口負担・高額療養費を返す", () => {
   const r = processReceipt(loaded, { ...baseInput, copay: { copayRatio: 0.3, category: "ウ" } });
   assert.ok(r.copayment);

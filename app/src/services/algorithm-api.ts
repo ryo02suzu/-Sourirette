@@ -42,6 +42,7 @@ export interface ServerReceiptResult {
   visitDays: number;
   validation: ServerValidationIssue[];
   submittable: boolean;
+  algorithmIssues: { severity: "error" | "warning"; ruleId: string; message: string; procedureCode?: string }[];
   commentCandidates: ServerCommentCandidate[];
   accounting: ServerAccounting;
   copayment?: ServerCopayment;

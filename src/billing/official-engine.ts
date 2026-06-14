@@ -11,7 +11,7 @@
  * ⚠️ 構成されるルールはすべて公式データ由来だが、本番算定への有効化（ブロッキング）は
  *    確認試験・実運用の検証後とする方針（status-checklist の鉄則）。
  */
-import { CalculationEngine, type CalculationContext, type ClaimLine, type Rule } from "./engine.js";
+import { CalculationEngine, type CalculationContext, type CalculationIssue, type ClaimLine, type Rule } from "./engine.js";
 import { decodeSjis, parseDentalProcedureMaster, buildMasterFromRows } from "./master-loader.js";
 import type { InMemoryMaster } from "./master.js";
 import { createDataDrivenRules } from "./rule-tables.js";
@@ -88,14 +88,19 @@ function pricingRule(validFrom: string): Rule {
     validFrom,
     evaluate(ctx: CalculationContext) {
       const lines: ClaimLine[] = [];
+      const issues: CalculationIssue[] = [];
       for (const p of ctx.procedures) {
         const row = ctx.master.findProcedure(p.procedureCode, ctx.visit.visitDate);
-        if (!row) continue;
+        if (!row) {
+          // マスタに無いコードは黙って落とさず指摘する（タイプミス・過少請求の防止）
+          issues.push({ severity: "error", ruleId: `official-pricing/${validFrom}`, procedureCode: p.procedureCode, message: `診療行為コード ${p.procedureCode} がマスタに存在しません（診療日 ${ctx.visit.visitDate}）` });
+          continue;
+        }
         const line: ClaimLine = { procedureCode: p.procedureCode, name: row.name, points: row.points, quantity: p.quantity, category: categoryOf(p.procedureCode) };
         if (p.teeth && p.teeth.length > 0) line.teeth = p.teeth;
         lines.push(line);
       }
-      return { lines };
+      return { lines, issues };
     },
   };
 }

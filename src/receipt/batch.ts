@@ -10,6 +10,7 @@ import { assembleUkeFile, type UkeFileInput } from "./build.js";
 import { encodeUkeFile, serializeFile } from "./uke.js";
 import { isSubmittable, validateUkeRecords, type ValidationIssue } from "./validate.js";
 import { isValidDisease, type OfficialEngine } from "../billing/official-engine.js";
+import type { CalculationIssue } from "../billing/engine.js";
 import { buildUkeReceipt, type ReceiptCoreInput } from "./process.js";
 
 export interface BatchInput {
@@ -22,6 +23,8 @@ export interface BatchReceiptReport {
   name: string;
   totalPoints: number;
   visitDays: number;
+  /** 算定エンジンの指摘（回数・背反・包括・部位・不正コード） */
+  algorithmIssues: CalculationIssue[];
 }
 
 export interface BatchResult {
@@ -47,8 +50,8 @@ export function processBatch(loaded: OfficialEngine, input: BatchInput): BatchRe
   const perReceipt: BatchReceiptReport[] = [];
   const built = input.receipts.map((r, i) => {
     const receiptNo = r.receiptNo ?? i + 1;
-    const { receipt, totalPoints, visitDays } = buildUkeReceipt(loaded, { ...r, receiptNo });
-    perReceipt.push({ receiptNo, name: r.name, totalPoints, visitDays });
+    const { receipt, totalPoints, visitDays, issues } = buildUkeReceipt(loaded, { ...r, receiptNo });
+    perReceipt.push({ receiptNo, name: r.name, totalPoints, visitDays, algorithmIssues: issues });
     return receipt;
   });
 

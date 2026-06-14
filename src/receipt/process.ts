@@ -6,7 +6,7 @@
  * 1関数で返す。サーバ・CLI・アプリはこの関数を共用する。
  */
 import type { Diagnosis, Patient, Visit } from "../domain/types.js";
-import type { ClaimLine } from "../billing/engine.js";
+import type { ClaimLine, CalculationIssue } from "../billing/engine.js";
 import { commentCandidates, isValidDisease, type OfficialEngine } from "../billing/official-engine.js";
 import { buildAccounting, type AccountingResult } from "../billing/accounting.js";
 import { calculateCopayment, type CopaymentResult, type IncomeOver70, type IncomeUnder70 } from "../billing/copayment.js";
@@ -44,9 +44,28 @@ export interface ProcessReceiptInput extends ReceiptCoreInput {
   copay?: { copayRatio: number; category: IncomeUnder70 | IncomeOver70; isMultiple?: boolean; applyCapAtWindow?: boolean };
 }
 
+/** 入力の必須項目を検証し、欠落時は分かりやすいエラーにする */
+function validateCoreInput(input: ReceiptCoreInput): void {
+  if (input.patient === undefined || typeof input.patient.birthDate !== "string" || (input.patient.sex !== "M" && input.patient.sex !== "F")) {
+    throw new Error("patient（birthDate, sex=M/F）は必須です");
+  }
+  if (typeof input.name !== "string" || input.name === "") throw new Error("name（氏名）は必須です");
+  if (input.scheme === undefined) throw new Error("scheme（保険枠）は必須です");
+  if (input.insurer === undefined || typeof input.insurer.insurerNo !== "string" || typeof input.insurer.number !== "string") {
+    throw new Error("insurer（insurerNo, number）は必須です");
+  }
+  if (!Array.isArray(input.visits) || input.visits.length === 0) throw new Error("受診（visits）は1件以上必要です");
+  for (const v of input.visits) {
+    if (typeof v.date !== "string" || (v.visitType !== "first" && v.visitType !== "followup") || !Array.isArray(v.procedureCodes)) {
+      throw new Error(`visit の形式が不正です（date, visitType=first/followup, procedureCodes[]）: ${JSON.stringify(v).slice(0, 80)}`);
+    }
+  }
+  if (!Array.isArray(input.diagnoses) || input.diagnoses.length === 0) throw new Error("diagnoses（傷病名）は1件以上必要です");
+}
+
 /** 1レセプト分の UkeReceipt を算定して組み立てる（バッチ・単票で共用） */
-export function buildUkeReceipt(loaded: OfficialEngine, input: ReceiptCoreInput): { receipt: UkeReceipt; totalPoints: number; visitDays: number; lines: ClaimLine[] } {
-  if (input.visits.length === 0) throw new Error("受診（visits）が空です");
+export function buildUkeReceipt(loaded: OfficialEngine, input: ReceiptCoreInput): { receipt: UkeReceipt; totalPoints: number; visitDays: number; lines: ClaimLine[]; issues: CalculationIssue[] } {
+  validateCoreInput(input);
   const patient: Patient = { id: "rx", birthDate: input.patient.birthDate, sex: input.patient.sex };
 
   const visitClaims: VisitClaim[] = [];
@@ -83,7 +102,8 @@ export function buildUkeReceipt(loaded: OfficialEngine, input: ReceiptCoreInput)
   const totalPoints = visitClaims.reduce((s, vc) => s + vc.result.totalPoints, 0);
   const visitDays = new Set(input.visits.map((v) => v.date)).size;
   const lines = visitClaims.flatMap((vc) => vc.result.lines);
-  return { receipt, totalPoints, visitDays, lines };
+  const issues = visitClaims.flatMap((vc) => vc.result.issues);
+  return { receipt, totalPoints, visitDays, lines, issues };
 }
 
 export interface ProcessReceiptResult {
@@ -97,6 +117,8 @@ export interface ProcessReceiptResult {
   visitDays: number;
   validation: ValidationIssue[];
   submittable: boolean;
+  /** 算定エンジンの指摘（回数・背反・包括・部位・不正コード等のルール発火） */
+  algorithmIssues: CalculationIssue[];
   /** 各診療行為コードに紐づく別表Ⅰ摘要欄コメント候補 */
   commentCandidates: { procedureCode: string; commentCode: string; displayText: string; recordingNote: string }[];
   /** 会計: 領収証の費用区分別集計＋明細書の個別明細 */
@@ -107,7 +129,7 @@ export interface ProcessReceiptResult {
 
 /** カルテ入力から、算定・UKE生成・点検までを一気通貫で処理する（単票） */
 export function processReceipt(loaded: OfficialEngine, input: ProcessReceiptInput): ProcessReceiptResult {
-  const { receipt, totalPoints, visitDays, lines } = buildUkeReceipt(loaded, input);
+  const { receipt, totalPoints, visitDays, lines, issues: algorithmIssues } = buildUkeReceipt(loaded, input);
   const records = assembleUkeFile({ facility: input.facility, receipts: [receipt] });
   const validation = validateUkeRecords(records, { isKnownDiseaseCode: (c) => isValidDisease(loaded, c) });
   const bytes = encodeUkeFile(records);
@@ -140,6 +162,7 @@ export function processReceipt(loaded: OfficialEngine, input: ProcessReceiptInpu
     visitDays,
     validation,
     submittable: isSubmittable(validation),
+    algorithmIssues,
     commentCandidates: candidates,
     accounting,
     ...(copayment !== undefined ? { copayment } : {}),

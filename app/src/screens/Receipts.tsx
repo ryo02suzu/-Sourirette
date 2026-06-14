@@ -27,6 +27,7 @@ interface DisplayUke {
   validation: ServerValidationIssue[];
   submittable: boolean;
   commentCandidates?: ServerCommentCandidate[];
+  algorithmIssues?: { severity: "error" | "warning"; message: string; procedureCode?: string }[];
 }
 
 export function ReceiptsScreen({ onOpenChart }: { onOpenChart(): void }) {
@@ -63,6 +64,7 @@ export function ReceiptsScreen({ onOpenChart }: { onOpenChart(): void }) {
         validation: r.validation,
         submittable: r.submittable,
         commentCandidates: r.commentCandidates,
+        algorithmIssues: r.algorithmIssues,
       });
       downloadUkeBase64(r.ukeBase64);
       toast(
@@ -143,6 +145,18 @@ export function ReceiptsScreen({ onOpenChart }: { onOpenChart(): void }) {
               1枚に集約し（同一診療行為は算定日情報にマージ）、記録条件仕様（歯科用）令和8年6月版の
               レコード定義どおりに直列化しています。
             </div>
+            {uke.algorithmIssues && uke.algorithmIssues.length > 0 && (
+              <div style={{ marginBottom: 8 }}>
+                <div className="tiny" style={{ fontWeight: 700, color: "var(--error)", marginBottom: 2 }}>算定エンジンの指摘（公式ルール）</div>
+                <ul className="tiny" style={{ margin: 0, paddingLeft: 18 }}>
+                  {uke.algorithmIssues.map((i, k) => (
+                    <li key={k} style={{ color: i.severity === "error" ? "var(--error)" : "var(--warn)" }}>
+                      {i.severity === "error" ? "エラー" : "警告"}: {i.message}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
             {uke.commentCandidates && uke.commentCandidates.length > 0 && (
               <div className="tiny muted" style={{ marginBottom: 6 }}>
                 ✦ 別表Ⅰ 摘要欄コメント候補 {uke.commentCandidates.length} 件（記載要否は条件を確認）:{" "}

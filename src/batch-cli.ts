@@ -50,6 +50,9 @@ function main(): void {
   process.stdout.write(`\n=== バッチ算定結果（${input.facility.facilityName} ${input.facility.billingMonth}）===\n`);
   for (const p of r.perReceipt) {
     process.stdout.write(`  レセプト${p.receiptNo} ${p.name}: ${p.totalPoints}点 / 実日数${p.visitDays}\n`);
+    for (const is of p.algorithmIssues) {
+      process.stdout.write(`      [${is.severity === "error" ? "エラー" : "警告"}] ${is.message}\n`);
+    }
   }
   process.stdout.write(`\nレセプト ${r.receiptCount}件 / 総合計 ${r.grandTotalPoints}点 / ${r.recordCount}レコード・${r.byteLength}バイト\n`);
   if (r.validation.length === 0) {
