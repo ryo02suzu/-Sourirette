@@ -7,7 +7,7 @@
  */
 import type { Diagnosis, Patient, Visit } from "../domain/types.js";
 import type { ClaimLine, CalculationIssue } from "../billing/engine.js";
-import { commentCandidates, isValidDisease, type OfficialEngine } from "../billing/official-engine.js";
+import { commentCandidates, isValidDisease, missedChargeHints, type OfficialEngine } from "../billing/official-engine.js";
 import { buildAccounting, type AccountingResult } from "../billing/accounting.js";
 import { calculateCopayment, type CopaymentResult, type IncomeOver70, type IncomeUnder70 } from "../billing/copayment.js";
 import { monthlyClaimToReceipt, type VisitClaim } from "./from-claim.js";
@@ -121,6 +121,8 @@ export interface ProcessReceiptResult {
   algorithmIssues: CalculationIssue[];
   /** 各診療行為コードに紐づく別表Ⅰ摘要欄コメント候補 */
   commentCandidates: { procedureCode: string; commentCode: string; displayText: string; recordingNote: string }[];
+  /** 算定もれ提示: 該当すれば算定できる加算/通則のヒント（取り漏れ防止） */
+  missedChargeHints: { procedureCode: string; type: string; condition: string; value: string; source: string }[];
   /** 会計: 領収証の費用区分別集計＋明細書の個別明細 */
   accounting: AccountingResult;
   /** 窓口会計（input.copay 指定時のみ） */
@@ -164,6 +166,7 @@ export function processReceipt(loaded: OfficialEngine, input: ProcessReceiptInpu
     submittable: isSubmittable(validation),
     algorithmIssues,
     commentCandidates: candidates,
+    missedChargeHints: missedChargeHints(loaded, allCodes),
     accounting,
     ...(copayment !== undefined ? { copayment } : {}),
   };

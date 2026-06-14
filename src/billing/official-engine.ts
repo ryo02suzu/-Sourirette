@@ -16,7 +16,7 @@ import { decodeSjis, parseDentalProcedureMaster, buildMasterFromRows } from "./m
 import type { InMemoryMaster } from "./master.js";
 import { createDataDrivenRules } from "./rule-tables.js";
 import { createSiteDiagnosisRule } from "./rules/site-diagnosis.js";
-import { buildDiagnosisRequirements, parseRulesDb } from "./rules-db-loader.js";
+import { buildChargeHintsByKubun, buildDiagnosisRequirements, parseRulesDb, type AgeTimeSiteEntry } from "./rules-db-loader.js";
 import {
   createInclusionGroupRule,
   haihanToMutualExclusions,
@@ -73,6 +73,8 @@ export interface OfficialEngine {
   betsu1Index: Map<string, Betsu1Entry[]>;
   /** 傷病名コード → 傷病名行（傷病名マスタ未指定時は空） */
   diseaseIndex: Map<string, DiseaseRow>;
+  /** 区分 → 算定可能な加算/通則ヒント（算定もれ提示用） */
+  chargeHintsByKubun: Map<string, AgeTimeSiteEntry[]>;
   counts: { frequencyLimits: number; mutualExclusions: number; inclusionGroups: number; betsu1Entries: number; diseases: number; diagnosisRules: number };
 }
 
@@ -132,9 +134,11 @@ export function loadOfficialEngine(src: OfficialDataSources, validFrom = "2024-0
   const diseaseIndex = buildDiseaseIndex(diseaseRows);
 
   // 算定ルール調査DB（病名適応の不適応＝warning）を区分→9桁コードに展開して有効化
-  const diagnosisRequirements = src.rulesDbJson !== undefined
-    ? buildDiagnosisRequirements(parseRulesDb(src.rulesDbJson), buildKubunToCodes(masterText))
+  const rulesDb = src.rulesDbJson !== undefined ? parseRulesDb(src.rulesDbJson) : undefined;
+  const diagnosisRequirements = rulesDb !== undefined
+    ? buildDiagnosisRequirements(rulesDb, buildKubunToCodes(masterText))
     : [];
+  const chargeHintsByKubun = rulesDb !== undefined ? buildChargeHintsByKubun(rulesDb) : new Map<string, AgeTimeSiteEntry[]>();
 
   const engine = new CalculationEngine([
     pricingRule(validFrom),
@@ -149,6 +153,7 @@ export function loadOfficialEngine(src: OfficialDataSources, validFrom = "2024-0
     codeToKubun,
     betsu1Index,
     diseaseIndex,
+    chargeHintsByKubun,
     counts: { frequencyLimits: frequencyLimits.length, mutualExclusions: mutualExclusions.length, inclusionGroups, betsu1Entries: betsu1Entries.length, diseases: diseaseIndex.size, diagnosisRules: diagnosisRequirements.length },
   };
 }
@@ -162,4 +167,24 @@ export function commentCandidates(loaded: OfficialEngine, procedureCode: string)
 export function isValidDisease(loaded: OfficialEngine, code: string): boolean {
   if (loaded.diseaseIndex.size === 0) return true;
   return isKnownDiseaseCode(code, loaded.diseaseIndex);
+}
+
+/**
+ * 算定もれ提示: 算定した診療行為コード群に対し、該当すれば算定できる加算/通則のヒントを返す。
+ * 「この処置なら6歳未満で乳幼児加算40点／時間外85点も算定できる」等。最終判断は医院（要確認）。
+ */
+export function missedChargeHints(loaded: OfficialEngine, procedureCodes: readonly string[]): { procedureCode: string; type: string; condition: string; value: string; source: string }[] {
+  const out: { procedureCode: string; type: string; condition: string; value: string; source: string }[] = [];
+  const seen = new Set<string>();
+  for (const code of procedureCodes) {
+    const kubun = loaded.codeToKubun.get(code);
+    if (kubun === undefined) continue;
+    for (const h of loaded.chargeHintsByKubun.get(kubun) ?? []) {
+      const key = `${code}#${h.id}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push({ procedureCode: code, type: h.type, condition: h.condition ?? "", value: h.value ?? "", source: h.source ?? "" });
+    }
+  }
+  return out;
 }

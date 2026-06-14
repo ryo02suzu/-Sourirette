@@ -29,12 +29,42 @@ export interface RulesDb {
     note?: string;
   }[];
   facility_standard?: unknown[];
-  age_time_site?: unknown[];
+  age_time_site?: AgeTimeSiteEntry[];
   computer_check?: unknown[];
+}
+
+export interface AgeTimeSiteEntry {
+  id: string;
+  type: string;
+  procedure_codes?: string[];
+  kubun?: string;
+  condition?: string;
+  value?: string;
+  source?: string;
+  confidence?: string;
 }
 
 export function parseRulesDb(json: string): RulesDb {
   return JSON.parse(json) as RulesDb;
+}
+
+/**
+ * 算定もれ提示用: 区分 → 算定可能な加算/通則（年齢・時間・部位）のヒント索引。
+ * 「この処置を算定したなら、該当すればこの加算も算定できる」を提示する元データ。
+ */
+export function buildChargeHintsByKubun(db: RulesDb): Map<string, AgeTimeSiteEntry[]> {
+  const map = new Map<string, AgeTimeSiteEntry[]>();
+  for (const e of db.age_time_site ?? []) {
+    const kubuns = new Set<string>();
+    if (e.kubun !== undefined && e.kubun !== "") for (const k of e.kubun.split("/")) kubuns.add(k.trim());
+    for (const c of e.procedure_codes ?? []) kubuns.add(c.trim());
+    for (const k of kubuns) {
+      let arr = map.get(k);
+      if (arr === undefined) map.set(k, (arr = []));
+      arr.push(e);
+    }
+  }
+  return map;
 }
 
 /** disease_master → 病名略号 → 関連7桁コード集合（主コード＋also[]の全コード） */

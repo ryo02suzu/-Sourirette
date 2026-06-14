@@ -66,6 +66,11 @@ test("製品API: 摘要欄コメント候補が返る（初診料→別表Ⅰ）
   assert.ok(r.commentCandidates.some((c) => c.procedureCode === "301000110" && c.commentCode === "820100300"));
 });
 
+test("製品API: 算定もれ提示（初診→乳幼児加算等のヒント）が返る", () => {
+  const r = processReceipt(loaded, baseInput);
+  assert.ok(r.missedChargeHints.some((h) => h.procedureCode === "301000110" && h.value.includes("乳幼児加算")));
+});
+
 test("製品API: 会計（費用区分別集計＋明細）が返る", () => {
   const r = processReceipt(loaded, baseInput);
   assert.ok(r.accounting.byCategory.some((c) => c.category === "初・再診料"));
