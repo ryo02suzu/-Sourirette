@@ -64,3 +64,19 @@ test("製品API: 摘要欄コメント候補が返る（初診料→別表Ⅰ）
   const r = processReceipt(loaded, baseInput);
   assert.ok(r.commentCandidates.some((c) => c.procedureCode === "301000110" && c.commentCode === "820100300"));
 });
+
+test("製品API: 会計（費用区分別集計＋明細）が返る", () => {
+  const r = processReceipt(loaded, baseInput);
+  assert.ok(r.accounting.byCategory.some((c) => c.category === "初・再診料"));
+  assert.ok(r.accounting.byCategory.some((c) => c.category === "画像診断"));
+  assert.ok(r.accounting.detail.length >= 2);
+  assert.equal(r.accounting.totalPoints, r.totalPoints);
+});
+
+test("製品API: copay指定で窓口負担・高額療養費を返す", () => {
+  const r = processReceipt(loaded, { ...baseInput, copay: { copayRatio: 0.3, category: "ウ" } });
+  assert.ok(r.copayment);
+  // 432点（初診272+写真診断160）→ 総医療費4,320円・3割＝1,300円（限度額未達）
+  assert.equal(r.copayment!.grossMedicalCost, r.totalPoints * 10);
+  assert.equal(r.copayment!.windowBurden, r.copayment!.burdenBeforeCap);
+});

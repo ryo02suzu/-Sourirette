@@ -6,7 +6,10 @@
  * 1関数で返す。サーバ・CLI・アプリはこの関数を共用する。
  */
 import type { Diagnosis, Patient, Visit } from "../domain/types.js";
+import type { ClaimLine } from "../billing/engine.js";
 import { commentCandidates, isValidDisease, type OfficialEngine } from "../billing/official-engine.js";
+import { buildAccounting, type AccountingResult } from "../billing/accounting.js";
+import { calculateCopayment, type CopaymentResult, type IncomeOver70, type IncomeUnder70 } from "../billing/copayment.js";
 import { monthlyClaimToReceipt, type VisitClaim } from "./from-claim.js";
 import { assembleUkeFile, type UkeFileInput, type UkeReceipt } from "./build.js";
 import { encodeUkeFile, serializeFile } from "./uke.js";
@@ -37,10 +40,12 @@ export interface ReceiptCoreInput {
 
 export interface ProcessReceiptInput extends ReceiptCoreInput {
   facility: UkeFileInput["facility"];
+  /** 窓口会計（負担割合・所得区分）を計算する場合に指定 */
+  copay?: { copayRatio: number; category: IncomeUnder70 | IncomeOver70; isMultiple?: boolean; applyCapAtWindow?: boolean };
 }
 
 /** 1レセプト分の UkeReceipt を算定して組み立てる（バッチ・単票で共用） */
-export function buildUkeReceipt(loaded: OfficialEngine, input: ReceiptCoreInput): { receipt: UkeReceipt; totalPoints: number; visitDays: number } {
+export function buildUkeReceipt(loaded: OfficialEngine, input: ReceiptCoreInput): { receipt: UkeReceipt; totalPoints: number; visitDays: number; lines: ClaimLine[] } {
   if (input.visits.length === 0) throw new Error("受診（visits）が空です");
   const patient: Patient = { id: "rx", birthDate: input.patient.birthDate, sex: input.patient.sex };
 
@@ -77,7 +82,8 @@ export function buildUkeReceipt(loaded: OfficialEngine, input: ReceiptCoreInput)
 
   const totalPoints = visitClaims.reduce((s, vc) => s + vc.result.totalPoints, 0);
   const visitDays = new Set(input.visits.map((v) => v.date)).size;
-  return { receipt, totalPoints, visitDays };
+  const lines = visitClaims.flatMap((vc) => vc.result.lines);
+  return { receipt, totalPoints, visitDays, lines };
 }
 
 export interface ProcessReceiptResult {
@@ -93,14 +99,32 @@ export interface ProcessReceiptResult {
   submittable: boolean;
   /** 各診療行為コードに紐づく別表Ⅰ摘要欄コメント候補 */
   commentCandidates: { procedureCode: string; commentCode: string; displayText: string; recordingNote: string }[];
+  /** 会計: 領収証の費用区分別集計＋明細書の個別明細 */
+  accounting: AccountingResult;
+  /** 窓口会計（input.copay 指定時のみ） */
+  copayment?: CopaymentResult;
 }
 
 /** カルテ入力から、算定・UKE生成・点検までを一気通貫で処理する（単票） */
 export function processReceipt(loaded: OfficialEngine, input: ProcessReceiptInput): ProcessReceiptResult {
-  const { receipt, totalPoints, visitDays } = buildUkeReceipt(loaded, input);
+  const { receipt, totalPoints, visitDays, lines } = buildUkeReceipt(loaded, input);
   const records = assembleUkeFile({ facility: input.facility, receipts: [receipt] });
   const validation = validateUkeRecords(records, { isKnownDiseaseCode: (c) => isValidDisease(loaded, c) });
   const bytes = encodeUkeFile(records);
+
+  const accounting = buildAccounting(lines, loaded.codeToKubun);
+  let copayment: CopaymentResult | undefined;
+  if (input.copay !== undefined) {
+    copayment = calculateCopayment({
+      totalPoints,
+      birthDate: input.patient.birthDate,
+      copayRatio: input.copay.copayRatio,
+      category: input.copay.category,
+      onDate: input.visits[0]!.date,
+      ...(input.copay.isMultiple !== undefined ? { isMultiple: input.copay.isMultiple } : {}),
+      ...(input.copay.applyCapAtWindow !== undefined ? { applyCapAtWindow: input.copay.applyCapAtWindow } : {}),
+    });
+  }
 
   const allCodes = [...new Set(input.visits.flatMap((v) => v.procedureCodes))];
   const candidates = allCodes.flatMap((code) =>
@@ -117,5 +141,7 @@ export function processReceipt(loaded: OfficialEngine, input: ProcessReceiptInpu
     validation,
     submittable: isSubmittable(validation),
     commentCandidates: candidates,
+    accounting,
+    ...(copayment !== undefined ? { copayment } : {}),
   };
 }
