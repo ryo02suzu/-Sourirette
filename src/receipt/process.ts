@@ -8,7 +8,7 @@
 import type { Diagnosis, Patient, Visit } from "../domain/types.js";
 import { commentCandidates, isValidDisease, type OfficialEngine } from "../billing/official-engine.js";
 import { monthlyClaimToReceipt, type VisitClaim } from "./from-claim.js";
-import { assembleUkeFile, type UkeFileInput } from "./build.js";
+import { assembleUkeFile, type UkeFileInput, type UkeReceipt } from "./build.js";
 import { encodeUkeFile, serializeFile } from "./uke.js";
 import { isSubmittable, validateUkeRecords, type ValidationIssue } from "./validate.js";
 import type { ReceiptScheme } from "./receipt-type.js";
@@ -21,8 +21,8 @@ export interface ProcessVisit {
   procedureCodes: string[];
 }
 
-export interface ProcessReceiptInput {
-  facility: UkeFileInput["facility"];
+/** 1レセプト（1患者・1ヶ月）の入力（施設情報を除く） */
+export interface ReceiptCoreInput {
   receiptNo?: number;
   patient: { birthDate: string; sex: "M" | "F" };
   name: string;
@@ -35,23 +35,12 @@ export interface ProcessReceiptInput {
   diagnoses: Diagnosis[];
 }
 
-export interface ProcessReceiptResult {
-  /** UKE 全レコードのテキスト（改行は LF に正規化） */
-  recordsText: string;
-  /** UKE バイト列（Shift_JIS＋EOF）を base64 で（ダウンロード用） */
-  ukeBase64: string;
-  recordCount: number;
-  byteLength: number;
-  totalPoints: number;
-  visitDays: number;
-  validation: ValidationIssue[];
-  submittable: boolean;
-  /** 各診療行為コードに紐づく別表Ⅰ摘要欄コメント候補 */
-  commentCandidates: { procedureCode: string; commentCode: string; displayText: string; recordingNote: string }[];
+export interface ProcessReceiptInput extends ReceiptCoreInput {
+  facility: UkeFileInput["facility"];
 }
 
-/** カルテ入力から、算定・UKE生成・点検までを一気通貫で処理する */
-export function processReceipt(loaded: OfficialEngine, input: ProcessReceiptInput): ProcessReceiptResult {
+/** 1レセプト分の UkeReceipt を算定して組み立てる（バッチ・単票で共用） */
+export function buildUkeReceipt(loaded: OfficialEngine, input: ReceiptCoreInput): { receipt: UkeReceipt; totalPoints: number; visitDays: number } {
   if (input.visits.length === 0) throw new Error("受診（visits）が空です");
   const patient: Patient = { id: "rx", birthDate: input.patient.birthDate, sex: input.patient.sex };
 
@@ -86,11 +75,32 @@ export function processReceipt(loaded: OfficialEngine, input: ProcessReceiptInpu
     insurer: input.insurer,
   });
 
+  const totalPoints = visitClaims.reduce((s, vc) => s + vc.result.totalPoints, 0);
+  const visitDays = new Set(input.visits.map((v) => v.date)).size;
+  return { receipt, totalPoints, visitDays };
+}
+
+export interface ProcessReceiptResult {
+  /** UKE 全レコードのテキスト（改行は LF に正規化） */
+  recordsText: string;
+  /** UKE バイト列（Shift_JIS＋EOF）を base64 で（ダウンロード用） */
+  ukeBase64: string;
+  recordCount: number;
+  byteLength: number;
+  totalPoints: number;
+  visitDays: number;
+  validation: ValidationIssue[];
+  submittable: boolean;
+  /** 各診療行為コードに紐づく別表Ⅰ摘要欄コメント候補 */
+  commentCandidates: { procedureCode: string; commentCode: string; displayText: string; recordingNote: string }[];
+}
+
+/** カルテ入力から、算定・UKE生成・点検までを一気通貫で処理する（単票） */
+export function processReceipt(loaded: OfficialEngine, input: ProcessReceiptInput): ProcessReceiptResult {
+  const { receipt, totalPoints, visitDays } = buildUkeReceipt(loaded, input);
   const records = assembleUkeFile({ facility: input.facility, receipts: [receipt] });
   const validation = validateUkeRecords(records, { isKnownDiseaseCode: (c) => isValidDisease(loaded, c) });
   const bytes = encodeUkeFile(records);
-  const totalPoints = visitClaims.reduce((s, vc) => s + vc.result.totalPoints, 0);
-  const visitDays = new Set(input.visits.map((v) => v.date)).size;
 
   const allCodes = [...new Set(input.visits.flatMap((v) => v.procedureCodes))];
   const candidates = allCodes.flatMap((code) =>

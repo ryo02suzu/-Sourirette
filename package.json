@@ -9,7 +9,8 @@
     "test": "tsc && node --test \"dist/test/*.test.js\"",
     "uke:demo": "tsc && node dist/src/receipt/cli.js",
     "clinic:sim": "tsc && node dist/src/receipt/clinic-sim.js",
-    "serve": "tsc && node dist/src/server.js"
+    "serve": "tsc && node dist/src/server.js",
+    "batch": "tsc && node dist/src/batch-cli.js"
   },
   "engines": {
     "node": ">=22"

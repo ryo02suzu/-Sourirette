@@ -1,0 +1,26 @@
+{
+  "facility": { "payer": "1", "prefecture": "13", "facilityCode": "1234567", "facilityName": "ソーリレット歯科デモ医院", "billingMonth": "202607", "phone": "03-1234-5678" },
+  "receipts": [
+    {
+      "patient": { "birthDate": "1980-06-30", "sex": "F" },
+      "name": "基金　花子", "kanaName": "キキンハナコ", "chartNo": "0001",
+      "scheme": { "kind": "medical", "beneficiary": "family" },
+      "insurer": { "insurerNo": "01130012", "symbol": "11010203", "number": "123" },
+      "visits": [
+        { "date": "2026-06-05", "visitType": "first", "procedureCodes": ["301000110", "305000110", "305004010"] },
+        { "date": "2026-06-19", "visitType": "followup", "procedureCodes": [] }
+      ],
+      "diagnoses": [ { "diseaseCode": "8840351", "teeth": ["16"], "onsetDate": "2026-06-05" } ]
+    },
+    {
+      "patient": { "birthDate": "1962-03-10", "sex": "M" },
+      "name": "保険　太郎", "kanaName": "ホケンタロウ", "chartNo": "0002",
+      "scheme": { "kind": "medical", "beneficiary": "principal" },
+      "insurer": { "insurerNo": "01130012", "number": "456" },
+      "visits": [
+        { "date": "2026-06-08", "visitType": "first", "procedureCodes": ["301000110"] }
+      ],
+      "diagnoses": [ { "diseaseCode": "8840352", "teeth": ["26"], "onsetDate": "2026-06-08" } ]
+    }
+  ]
+}
