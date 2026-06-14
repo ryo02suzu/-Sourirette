@@ -6,8 +6,9 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { join, dirname } from "node:path";
-import { loadOfficialEngine, type OfficialDataSources } from "../src/billing/official-engine.js";
+import { loadOfficialEngine, isValidDisease, type OfficialDataSources } from "../src/billing/official-engine.js";
 import { processReceipt, type ProcessReceiptInput } from "../src/receipt/process.js";
+import { runKakuninShiken } from "../src/receipt/submission-sim.js";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const buf = (rel: string) => new Uint8Array(readFileSync(join(ROOT, rel)));
@@ -111,4 +112,37 @@ test("製品API: copay指定で窓口負担・高額療養費を返す", () => {
   // 432点（初診272+写真診断160）→ 総医療費4,320円・3割＝1,300円（限度額未達）
   assert.equal(r.copayment!.grossMedicalCost, r.totalPoints * 10);
   assert.equal(r.copayment!.windowBurden, r.copayment!.burdenBeforeCap);
+});
+
+test("確認試験(仮想): 正常レセプトのUKEは合格（L1/L2エラーゼロ）", () => {
+  const r = processReceipt(loaded, baseInput);
+  const bytes = Uint8Array.from(Buffer.from(r.ukeBase64, "base64"));
+  const sk = runKakuninShiken(bytes, { isKnownDiseaseCode: (c) => isValidDisease(loaded, c) });
+  assert.equal(sk.stage, "合格");
+  assert.equal(sk.passed, true);
+  assert.equal(sk.l1.length, 0);
+  assert.equal(sk.l2.length, 0);
+  assert.match(sk.report, /確認試験合格相当/);
+});
+
+test("確認試験(仮想): 無効な傷病名コードのUKEは返戻（L2エラー）", () => {
+  const r = processReceipt(loaded, { ...baseInput, diagnoses: [{ diseaseCode: "9999999", teeth: ["16"], onsetDate: "2026-06-05" }] });
+  const bytes = Uint8Array.from(Buffer.from(r.ukeBase64, "base64"));
+  const sk = runKakuninShiken(bytes, { isKnownDiseaseCode: (c) => isValidDisease(loaded, c) });
+  assert.equal(sk.passed, false);
+  assert.equal(sk.stage, "返戻");
+  assert.ok(sk.l2.some((i) => i.code === "2016"));
+});
+
+test("確認試験(仮想): 自動付与された加算で点数が増え、なお合格する", () => {
+  // 乳幼児・初診・深夜 → 乳幼児深夜加算が自動付与され、UKEは合格のまま
+  const r = processReceipt(loaded, {
+    ...baseInput,
+    patient: { birthDate: "2023-01-01", sex: "M" },
+    visits: [{ date: "2026-06-05", visitType: "first", procedureCodes: ["301000110"], timeClass: "midnight" }],
+  });
+  assert.equal(r.totalPoints, 892); // 272 + 620
+  const bytes = Uint8Array.from(Buffer.from(r.ukeBase64, "base64"));
+  const sk = runKakuninShiken(bytes, { isKnownDiseaseCode: (c) => isValidDisease(loaded, c) });
+  assert.equal(sk.passed, true);
 });

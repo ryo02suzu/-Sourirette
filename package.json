@@ -10,7 +10,8 @@
     "uke:demo": "tsc && node dist/src/receipt/cli.js",
     "clinic:sim": "tsc && node dist/src/receipt/clinic-sim.js",
     "serve": "tsc && node dist/src/server.js",
-    "batch": "tsc && node dist/src/batch-cli.js"
+    "batch": "tsc && node dist/src/batch-cli.js",
+    "shiken": "tsc && node dist/src/shiken-cli.js"
   },
   "engines": {
     "node": ">=22"
