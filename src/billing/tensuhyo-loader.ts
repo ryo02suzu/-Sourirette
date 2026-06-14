@@ -14,7 +14,7 @@
  *    （特に背反の scope＝同日/同月、包括のグループ意味は電子点数表レイアウトで要確認）。
  */
 import { decodeSjis, normalizeDate, parseCsvLine } from "./master-loader.js";
-import type { FrequencyLimit, MutualExclusion } from "./rule-tables.js";
+import type { FrequencyLimit, InclusionRule, MutualExclusion, Scope } from "./rule-tables.js";
 
 /** Shift_JIS バッファ → UTF-8 文字列（ローダーの入口） */
 export function decodeTensuhyo(buf: Uint8Array): string {
@@ -121,12 +121,27 @@ export function parseHaihan(utf8: string): HaihanRow[] {
 }
 
 /**
+ * 背反テーブル（03-x）ごとの背反範囲。電子点数表「00ファイル一覧表（歯科）」の規定:
+ *   03-1: 1日につき背反 / 03-2: 同一月内で背反 / 03-3: 同時に背反 /
+ *   03-4: 同一部位で同時に背反 / 03-5: 1週間につき背反
+ * 現行の MutualExclusion は同日/同月のみ表現できるため、03-1/03-3→same-day、03-2→same-month を
+ * 取り込む。03-4（部位条件）・03-5（週）はモデル外のため呼び出し側で除外する（過検知防止）。
+ */
+export const HAIHAN_TABLE_SCOPE: Record<string, "same-day" | "same-month" | "unsupported"> = {
+  "03-1": "same-day",
+  "03-2": "same-month",
+  "03-3": "same-day", // 同時 ≈ 同日（保守的）
+  "03-4": "unsupported", // 同一部位で同時（部位条件＝本モデル外）
+  "03-5": "unsupported", // 1週間（週＝本モデル外）
+};
+
+/**
  * 背反行 → MutualExclusion[]。
  * 背反テーブルは方向違い（区分1/2）で対称収録されるため、無順序ペアで重複排除する。
  * 基本行為どうし（加算コード 00000）のみ取り込む（加算固有の背反は別途）。
  *
- * @param scope 同日/同月の別。電子点数表レイアウトで確定するまで呼び出し側が指定する
- *   （既定 same-month＝同一明細書内併算定不可の保守的解釈。要・歯科医師レビュー）。
+ * @param scope 背反範囲。テーブル番号に応じて HAIHAN_TABLE_SCOPE で確定した値を渡す
+ *   （03-1=same-day, 03-2=same-month）。
  */
 export function haihanToMutualExclusions(
   rows: readonly HaihanRow[],
@@ -150,4 +165,78 @@ export function haihanToMutualExclusions(
 
 function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
+}
+
+// ---- 包括・被包括テーブル → 包括 ----
+//
+// 仕組み（電子点数表 活用手引き ⑵）: 補助マスター(01)に「包括する親」の包括グループ番号
+// ①②③（列6〜8）を持ち、包括テーブル(02)に各グループの「被包括の子」を持つ。
+// グループ番号が一致する 親×子 が包括関係（親を算定すると子は別途算定不可）。
+// 例: 抜髄(309002110, グループI005001) は 生切・根管貼薬 等を包括する。
+//
+// ⚠️ 包括テーブルには時間範囲（同日/同月）が明記されない。多くは「同時に行った場合」に
+//    包括されるため既定 same-day とするが、月単位で包括される関係もあるため scope は
+//    歯科医師レビューで精緻化する。
+
+/** 補助マスター(01) → 包括グループ番号 → 親（包括する側）コード集合 */
+export function parseHojoMasterGroups(utf8: string, asOf = todayIso()): Map<string, Set<string>> {
+  const parentsByGroup = new Map<string, Set<string>>();
+  for (const line of utf8.split(/\r?\n/)) {
+    if (line.trim() === "") continue;
+    const f = parseCsvLine(line);
+    const code = f[1] ?? "";
+    if (!/^\d{9}$/.test(code)) continue;
+    if ((f[2] ?? "") !== "00000") continue; // 基本行為のみ
+    if (!isActive(f[23] ?? "", f[24] ?? "", asOf)) continue;
+    for (const g of [f[5], f[6], f[7]]) {
+      if (g !== undefined && g !== "" && g !== "0") {
+        let set = parentsByGroup.get(g);
+        if (set === undefined) parentsByGroup.set(g, (set = new Set()));
+        set.add(code);
+      }
+    }
+  }
+  return parentsByGroup;
+}
+
+/** 包括テーブル(02) → 包括グループ番号 → 子（被包括）コード集合 */
+export function parseHokatsuChildren(utf8: string, asOf = todayIso()): Map<string, Set<string>> {
+  const childrenByGroup = new Map<string, Set<string>>();
+  for (const line of utf8.split(/\r?\n/)) {
+    if (line.trim() === "") continue;
+    const f = parseCsvLine(line);
+    const group = f[1] ?? "";
+    const code = f[2] ?? "";
+    if (group === "" || !/^\d{9}$/.test(code)) continue;
+    if ((f[3] ?? "") !== "00000") continue; // 基本行為のみ
+    if (!isActive(f[6] ?? "", f[7] ?? "", asOf)) continue;
+    let set = childrenByGroup.get(group);
+    if (set === undefined) childrenByGroup.set(group, (set = new Set()));
+    set.add(code);
+  }
+  return childrenByGroup;
+}
+
+/** 親集合×子集合（グループ番号で結合）→ InclusionRule[] */
+export function buildInclusions(
+  parentsByGroup: Map<string, Set<string>>,
+  childrenByGroup: Map<string, Set<string>>,
+  scope: Scope = "same-day",
+): InclusionRule[] {
+  const out: InclusionRule[] = [];
+  const seen = new Set<string>();
+  for (const [group, parents] of parentsByGroup) {
+    const children = childrenByGroup.get(group);
+    if (children === undefined) continue;
+    for (const parent of parents) {
+      for (const child of children) {
+        if (parent === child) continue;
+        const key = `${parent}/${child}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        out.push({ includingCode: parent, includedCode: child, scope, note: "電子点数表 包括" });
+      }
+    }
+  }
+  return out;
 }
