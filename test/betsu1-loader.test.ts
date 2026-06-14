@@ -6,7 +6,15 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { join, dirname } from "node:path";
-import { indexByKubun, isNumericCommentCode, normalizeKubun, parseBetsu1 } from "../src/billing/betsu1-loader.js";
+import {
+  buildCodeToKubun,
+  indexByKubun,
+  isNumericCommentCode,
+  normalizeKubun,
+  parseBetsu1,
+  requiredCommentsFor,
+} from "../src/billing/betsu1-loader.js";
+import { decodeSjis } from "../src/billing/master-loader.js";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const csv = readFileSync(join(ROOT, "data/masters/betsu1_shika_20260601.csv"), "utf-8");
@@ -34,6 +42,20 @@ test("別表Ⅰ: 区分索引で根管充填（I008）→暫間根充（82010032
   const i008 = idx.get("I008");
   assert.ok(i008 && i008.length > 0);
   assert.ok(i008!.some((e) => e.commentCode === "820100329"));
+});
+
+test("コード→区分: 実マスタで初診料(301000110)→A000 を引ける", () => {
+  const codeToKubun = buildCodeToKubun(decodeSjis(new Uint8Array(readFileSync(join(ROOT, "data/masters/h_ALL20260611.csv")))));
+  assert.equal(codeToKubun.get("301000110"), "A000");
+  assert.ok(codeToKubun.size > 3000, `size=${codeToKubun.size}`);
+});
+
+test("引き当て: 初診料コードから別表Ⅰの摘要欄候補（健康診断コメント）が引ける", () => {
+  const codeToKubun = buildCodeToKubun(decodeSjis(new Uint8Array(readFileSync(join(ROOT, "data/masters/h_ALL20260611.csv")))));
+  const index = indexByKubun(entries);
+  const candidates = requiredCommentsFor("301000110", codeToKubun, index);
+  assert.ok(candidates.length > 0, "初診料の摘要欄候補が空");
+  assert.ok(candidates.some((e) => e.commentCode === "820100300"));
 });
 
 test("別表Ⅰ: 9桁コメントコードの判定（特殊指定を除外）", () => {

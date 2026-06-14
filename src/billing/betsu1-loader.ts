@@ -79,3 +79,42 @@ export function indexByKubun(entries: readonly Betsu1Entry[]): Map<string, Betsu
 export function isNumericCommentCode(code: string): boolean {
   return /^\d{9}$/.test(code);
 }
+
+/**
+ * 歯科診療行為マスタ（UTF-8）から 9桁コード → 区分（告示番号）の対応を作る。
+ * 区分 = 区分アルファベット(列4) + 区分番号3桁(列5) + 枝番(列6, 00以外は "-n")。
+ * 例: 301000110(初診料) → "A000" / CAD/CAM冠系 → "M015-2"。別表Ⅰの区分と突合できる。
+ */
+export function buildCodeToKubun(utf8: string): Map<string, string> {
+  const map = new Map<string, string>();
+  for (const line of utf8.split(/\r?\n/)) {
+    if (line.trim() === "") continue;
+    const f = parseCsvLine(line);
+    if ((f[1] ?? "") !== "H") continue;
+    const code = f[2] ?? "";
+    if (!/^\d{9}$/.test(code)) continue;
+    const alpha = (f[3] ?? "").trim();
+    if (alpha === "" || alpha === "0") continue;
+    const num = (f[4] ?? "").trim();
+    const eda = (f[5] ?? "").trim();
+    let kubun = alpha + num;
+    if (eda !== "" && eda !== "00") kubun += `-${Number(eda)}`;
+    map.set(code, normalizeKubun(kubun));
+  }
+  return map;
+}
+
+/**
+ * 診療行為コードに対し、別表Ⅰが定める摘要欄コメント候補を返す。
+ * 区分が一致するエントリ（条件付き）を返すため、最終的にどれを記載するかは記載事項
+ * （recordingNote）の条件を見て歯科医師が判断する（強制ではなく候補提示）。
+ */
+export function requiredCommentsFor(
+  procedureCode: string,
+  codeToKubun: Map<string, string>,
+  index: Map<string, Betsu1Entry[]>,
+): Betsu1Entry[] {
+  const kubun = codeToKubun.get(procedureCode);
+  if (kubun === undefined) return [];
+  return index.get(kubun) ?? [];
+}
