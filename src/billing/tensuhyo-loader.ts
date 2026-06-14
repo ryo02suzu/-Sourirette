@@ -14,6 +14,7 @@
  *    （特に背反の scope＝同日/同月、包括のグループ意味は電子点数表レイアウトで要確認）。
  */
 import { decodeSjis, normalizeDate, parseCsvLine } from "./master-loader.js";
+import type { CalculationContext, CalculationIssue, Rule, RuleOutput } from "./engine.js";
 import type { FrequencyLimit, InclusionRule, MutualExclusion, Scope } from "./rule-tables.js";
 
 /** Shift_JIS バッファ → UTF-8 文字列（ローダーの入口） */
@@ -217,7 +218,63 @@ export function parseHokatsuChildren(utf8: string, asOf = todayIso()): Map<strin
   return childrenByGroup;
 }
 
-/** 親集合×子集合（グループ番号で結合）→ InclusionRule[] */
+/**
+ * 包括を「グループ判定型ルール」として直接生成する（ペアに展開しない高速版）。
+ *
+ * 包括関係はペアに展開すると数百万件になる（巨大グループ：入院料系等）。本番ではペア展開を
+ * 避け、入力された各コードについて「そのコードを子に含むグループの親が、同じレセプトに存在
+ * するか」を索引で判定する（O(入力コード数)）。buildInclusions は検証・小規模デモ用に残す。
+ */
+export function createInclusionGroupRule(
+  parentsByGroup: Map<string, Set<string>>,
+  childrenByGroup: Map<string, Set<string>>,
+  validFrom: string,
+  scope: Scope = "same-day",
+  validTo?: string,
+): Rule {
+  // 索引: 子コード → そのコードを子に含む（かつ親が存在する）グループ一覧
+  const groupsByChild = new Map<string, string[]>();
+  for (const [group, children] of childrenByGroup) {
+    if (!parentsByGroup.has(group)) continue;
+    for (const child of children) {
+      let arr = groupsByChild.get(child);
+      if (arr === undefined) groupsByChild.set(child, (arr = []));
+      arr.push(group);
+    }
+  }
+  const rule: Rule = {
+    id: `tensuhyo-inclusion-group/${validFrom}`,
+    validFrom,
+    evaluate(ctx: CalculationContext): RuleOutput {
+      const issues: CalculationIssue[] = [];
+      const isPresent = (code: string): boolean => {
+        const today = ctx.procedures.some((p) => p.procedureCode === code && p.quantity > 0);
+        if (scope === "same-day") return today;
+        return today || ctx.history.countInMonth(code, ctx.visit.visitDate) > 0;
+      };
+      for (const p of ctx.procedures) {
+        const groups = groupsByChild.get(p.procedureCode);
+        if (groups === undefined) continue;
+        let flagged = false;
+        for (const group of groups) {
+          for (const parent of parentsByGroup.get(group)!) {
+            if (parent !== p.procedureCode && isPresent(parent)) {
+              issues.push({ severity: "error", ruleId: rule.id, procedureCode: p.procedureCode, message: `${p.procedureCode} は ${parent} に包括され別途算定できません（電子点数表 包括）` });
+              flagged = true;
+              break;
+            }
+          }
+          if (flagged) break;
+        }
+      }
+      return { issues };
+    },
+  };
+  if (validTo !== undefined) rule.validTo = validTo;
+  return rule;
+}
+
+/** 親集合×子集合（グループ番号で結合）→ InclusionRule[]。検証・小規模デモ用（巨大展開に注意） */
 export function buildInclusions(
   parentsByGroup: Map<string, Set<string>>,
   childrenByGroup: Map<string, Set<string>>,

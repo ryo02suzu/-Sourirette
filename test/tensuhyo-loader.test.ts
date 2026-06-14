@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url";
 import { join, dirname } from "node:path";
 import {
   buildInclusions,
+  createInclusionGroupRule,
   decodeTensuhyo,
   HAIHAN_TABLE_SCOPE,
   haihanToMutualExclusions,
@@ -82,6 +83,26 @@ test("実データ→エンジン: 包括が発火する（抜髄と同日に根
   };
   const result = engine.calculate(ctx);
   assert.ok(result.issues.some((i) => i.severity === "error" && i.procedureCode === "309003310"));
+});
+
+test("包括グループ判定型ルール: ペア展開せず索引で発火（抜髄＋根管貼薬）", () => {
+  const parents = parseHojoMasterGroups(load("data/tensuhyo/01_hojo_master.csv"), ASOF);
+  const children = parseHokatsuChildren(load("data/tensuhyo/02_hokatsu.csv"), ASOF);
+  const engine = new CalculationEngine([createInclusionGroupRule(parents, children, "2024-04-01")]);
+  const base = {
+    patient: { id: "p", birthDate: "1980-01-01", sex: "F" as const },
+    visit: { id: "v", patientId: "p", visitDate: ASOF, visitType: "first" as const },
+    diagnoses: [],
+    history: { countInMonth: () => 0 },
+    facility: { has: () => false },
+    master: new InMemoryMaster(),
+  };
+  // 抜髄＋根管貼薬 同日 → 根管貼薬が包括されエラー
+  const ng = engine.calculate({ ...base, procedures: [{ procedureCode: "309002110", quantity: 1 }, { procedureCode: "309003310", quantity: 1 }] });
+  assert.ok(ng.issues.some((i) => i.severity === "error" && i.procedureCode === "309003310"));
+  // 根管貼薬だけ（親なし）→ 指摘なし
+  const ok = engine.calculate({ ...base, procedures: [{ procedureCode: "309003310", quantity: 1 }] });
+  assert.equal(ok.issues.length, 0);
 });
 
 test("実データ→エンジン: 回数制限が実際に発火する（初診料を月2回でエラー）", () => {
