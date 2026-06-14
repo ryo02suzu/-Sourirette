@@ -5,7 +5,7 @@
  * カルテ入力（受診・処置・傷病名）から、レセプト電算ファイル（UKE）と点検結果・摘要欄候補までを
  * 1関数で返す。サーバ・CLI・アプリはこの関数を共用する。
  */
-import type { Diagnosis, Patient, Visit } from "../domain/types.js";
+import type { Diagnosis, Patient, TimeClass, Visit } from "../domain/types.js";
 import type { ClaimLine, CalculationIssue } from "../billing/engine.js";
 import { commentCandidates, computeAlerts, isValidDisease, missedChargeHints, type OfficialEngine } from "../billing/official-engine.js";
 import { ageAt } from "../domain/types.js";
@@ -24,6 +24,8 @@ export interface ProcessVisit {
   visitType: "first" | "followup";
   /** 算定する診療行為コード（9桁）の列 */
   procedureCodes: string[];
+  /** 診療時間区分（時間外/休日/深夜）。未指定は通常時間内。年齢/時間外加算の自動算定に使う */
+  timeClass?: TimeClass;
 }
 
 /** 1レセプト（1患者・1ヶ月）の入力（施設情報を除く） */
@@ -76,7 +78,7 @@ export function buildUkeReceipt(loaded: OfficialEngine, input: ReceiptCoreInput)
 
   const visitClaims: VisitClaim[] = [];
   for (const v of input.visits) {
-    const visit: Visit = { id: `v-${v.date}`, patientId: patient.id, visitDate: v.date, visitType: v.visitType };
+    const visit: Visit = { id: `v-${v.date}`, patientId: patient.id, visitDate: v.date, visitType: v.visitType, ...(v.timeClass !== undefined ? { timeClass: v.timeClass } : {}) };
     const result = loaded.engine.calculate({
       patient,
       visit,

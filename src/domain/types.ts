@@ -2,6 +2,9 @@
 
 export type VisitType = "first" | "followup"; // 初診 / 再診
 
+/** 受診の時間区分（時間外/休日/深夜加算の自動算定に使う）。既定は通常時間内 */
+export type TimeClass = "regular" | "afterHours" | "holiday" | "midnight";
+
 export interface Patient {
   id: string;
   birthDate: string; // ISO 8601 (YYYY-MM-DD)
@@ -13,6 +16,8 @@ export interface Visit {
   patientId: string;
   visitDate: string; // ISO 8601
   visitType: VisitType;
+  /** 診療時間区分（時間外/休日/深夜）。未指定は通常時間内（加算なし） */
+  timeClass?: TimeClass;
 }
 
 /** 傷病名（コードは公式傷病名マスタ準拠） */

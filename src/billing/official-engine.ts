@@ -16,6 +16,7 @@ import { decodeSjis, parseDentalProcedureMaster, buildMasterFromRows } from "./m
 import type { InMemoryMaster } from "./master.js";
 import { createDataDrivenRules } from "./rule-tables.js";
 import { createSiteDiagnosisRule } from "./rules/site-diagnosis.js";
+import { buildAdditionIndex, createAdditionRule } from "./rules/additions.js";
 import { buildChargeHintsByKubun, buildDiagnosisRequirements, parseRulesDb, type AgeTimeSiteEntry, type RulesDb } from "./rules-db-loader.js";
 import { evaluateAlerts } from "../alerts/engine.js";
 import type { Alert, AlertInput } from "../alerts/types.js";
@@ -121,7 +122,9 @@ function pricingRule(validFrom: string): Rule {
 export function loadOfficialEngine(src: OfficialDataSources, validFrom = "2024-04-01"): OfficialEngine {
   const asOf = src.asOf ?? new Date().toISOString().slice(0, 10);
   const masterText = decodeSjis(src.procedureMaster);
-  const master = buildMasterFromRows(parseDentalProcedureMaster(masterText));
+  const masterRows = parseDentalProcedureMaster(masterText);
+  const master = buildMasterFromRows(masterRows);
+  const additionIndex = buildAdditionIndex(masterRows);
 
   const frequencyLimits = santeiKaisuToFrequencyLimits(parseSanteiKaisu(decodeSjis(src.santeiKaisu)), asOf);
   const mutualExclusions = [
@@ -149,6 +152,7 @@ export function loadOfficialEngine(src: OfficialDataSources, validFrom = "2024-0
 
   const engine = new CalculationEngine([
     pricingRule(validFrom),
+    createAdditionRule(additionIndex, codeToKubun, validFrom), // 年齢/時間外加算の自動算定（取りこぼし防止）
     ...createDataDrivenRules({ frequencyLimits, mutualExclusions, diagnosisRequirements }, validFrom),
     inclusionRule,
     createSiteDiagnosisRule(validFrom), // 部位×病名 歯式突合（処置の歯が傷病名部位にあるか）
