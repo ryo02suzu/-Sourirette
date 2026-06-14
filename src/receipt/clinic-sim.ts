@@ -13,7 +13,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { join, dirname } from "node:path";
 import type { CalculationContext } from "../billing/engine.js";
-import { loadOfficialEngine, type OfficialDataSources } from "../billing/official-engine.js";
+import { commentCandidates, loadOfficialEngine, type OfficialDataSources, type OfficialEngine } from "../billing/official-engine.js";
 import type { Diagnosis, Patient, Visit } from "../domain/types.js";
 import { monthlyClaimToReceipt, type VisitClaim } from "./from-claim.js";
 import { assembleUkeFile } from "./build.js";
@@ -44,8 +44,7 @@ function build() {
     betsu1Csv: readFileSync(join(ROOT, "data/masters/betsu1_shika_20260601.csv"), "utf-8"),
     asOf: ASOF,
   };
-  const loaded = loadOfficialEngine(sources);
-  return { engine: loaded.engine, master: loaded.master, counts: loaded.counts };
+  return loadOfficialEngine(sources);
 }
 
 interface SimPatient {
@@ -67,8 +66,9 @@ const PATIENTS: SimPatient[] = [
 ];
 
 function run(): void {
-  const { engine, master, counts } = build();
-  process.stdout.write(`=== 仮想歯科医院 2026年6月（公式ルール: 回数${counts.frequencyLimits}件 / 背反${counts.mutualExclusions}件 / 包括${counts.inclusionGroups}グループ・索引判定）===\n`);
+  const loaded: OfficialEngine = build();
+  const { engine, master, counts } = loaded;
+  process.stdout.write(`=== 仮想歯科医院 2026年6月（公式ルール: 回数${counts.frequencyLimits}件 / 背反${counts.mutualExclusions}件 / 包括${counts.inclusionGroups}グループ / 別表Ⅰ摘要欄${counts.betsu1Entries}件）===\n`);
 
   let totalPoints = 0;
   let caught = 0;
@@ -98,7 +98,11 @@ function run(): void {
     const selfcheck = isSubmittable(validateUkeRecords(records)) ? "自己点検OK" : "自己点検NG";
     const mark = pt.expect ? (engineErrors.length ? `✓検出(${pt.expect})` : `✗未検出(${pt.expect})`) : (engineErrors.length ? `指摘あり` : `指摘なし`);
     if (pt.expect && engineErrors.length) caught++;
-    process.stdout.write(`  ${pt.name}: ${points}点 / ${selfcheck} / ${mark}${engineErrors.length ? "  → " + engineErrors[0] : ""}\n`);
+    // 摘要欄コメント候補（別表Ⅰ）: このレセプトの処置に紐づく候補数
+    const codesUsed = new Set(pt.visits.flatMap(([, cs]) => cs));
+    const commentHits = [...codesUsed].flatMap((c) => commentCandidates(loaded, c)).length;
+    const tekiyo = commentHits > 0 ? ` / 摘要欄候補${commentHits}件` : "";
+    process.stdout.write(`  ${pt.name}: ${points}点 / ${selfcheck} / ${mark}${tekiyo}${engineErrors.length ? "  → " + engineErrors[0] : ""}\n`);
   });
 
   const violators = PATIENTS.filter((p) => p.expect).length;
