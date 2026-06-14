@@ -506,3 +506,18 @@
 - 発火確認: 抜髄(309002110)＋Per病名(8832354)→「算定できません」警告。病名なしでは出ない
 - R8改定情報も記録（初診267→272・再診58→59、外来物価対応料新設、SPT/P重防→歯周病継続支援治療統合）
 - テスト 138→139件 全通過
+
+## 追記41（2026-06-14 / 算定支援アラートエンジン step1: 型＋純関数＋テスト）
+
+- `src/alerts/types.ts`: Alert（level=error/warning/proposal・category・ruleId・source・contextKey・
+  requiresDentistReview）/ AcknowledgedPattern / AlertInput / makeContextKey。framework非依存
+- `src/alerts/engine.ts`: `evaluateAlerts(input, cfg)` 純関数。レセ内容→発火アラート配列。
+  - diagnosis_procedure → warning（forbidden該当 / required欠落）
+  - facility_standard → error（未届の施設基準でgated_procedure算定。届出不明時はチェックしない）
+  - age_time_site → proposal（取りこぼし。年齢条件は患者年齢で除外判定）
+  - 既読パターン（acknowledged contextKey）に一致するアラートは抑制（総量制御）
+  - ブロックしない（例外を投げず配列を返すだけ）。根拠source必ず併記
+- テスト（test/alerts.test.ts 10件）: DP001(抜髄×Per warning発火/×Pul非発火)・
+  FS001(歯初診未届error/届出済み非発火/未指定で無チェック)・AT012(I000算定単位proposal/初診非発火)・
+  年齢条件(乳幼児加算6歳以上非発火/未満発火)・既読学習(承認で抑制)・非ブロック
+- テスト 140→150件 全通過
