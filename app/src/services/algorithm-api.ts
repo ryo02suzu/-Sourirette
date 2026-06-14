@@ -19,6 +19,20 @@ export interface ServerCommentCandidate {
   recordingNote: string;
 }
 
+export interface ServerAccounting {
+  byCategory: { category: string; points: number }[];
+  detail: { procedureCode: string; name: string; points: number; quantity: number; category: string }[];
+  totalPoints: number;
+}
+
+export interface ServerCopayment {
+  grossMedicalCost: number;
+  burdenBeforeCap: number;
+  monthlyLimit: number;
+  windowBurden: number;
+  highCostBenefit: number;
+}
+
 export interface ServerReceiptResult {
   recordsText: string;
   ukeBase64: string;
@@ -29,6 +43,8 @@ export interface ServerReceiptResult {
   validation: ServerValidationIssue[];
   submittable: boolean;
   commentCandidates: ServerCommentCandidate[];
+  accounting: ServerAccounting;
+  copayment?: ServerCopayment;
 }
 
 /** サーバ稼働確認（取込件数を返す） */
