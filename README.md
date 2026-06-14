@@ -14,6 +14,7 @@
 | --- | --- |
 | [`docs/master-plan.md`](./docs/master-plan.md) | 全体設計書（要件・アーキテクチャ・データモデル・算定エンジン・ロードマップ） |
 | [`docs/regulatory-checklist.md`](./docs/regulatory-checklist.md) | 制度・法規制チェックリスト（電子保存3原則 / 3省2ガイドライン / レセ電算 / オン資・オン請） |
+| [`docs/commercialization-readiness.md`](./docs/commercialization-readiness.md) | 商用化レディネス判定（済 / 要コード / コード外の正直な区分） |
 
 ## UI（デモアプリ）
 
@@ -53,7 +54,7 @@ docs/                設計書・制度要件
 db/schema.sql        PostgreSQL スキーマ（追記専用カルテ・監査ログ・マスタ）
 src/domain/          ドメインモデル（歯式・患者・カルテ記録）
 src/billing/         算定エンジン（マスタ参照・算定ルール）
-src/receipt/         レセプト電算（UKE ファイル）出力（レコード定義・Shift_JIS・ファイル組立）
+src/receipt/         レセプト電算（UKE）: レコード定義・Shift_JIS・組立・自己点検・返戻再請求
 test/                ユニットテスト（node:test）
 ```
 
@@ -64,7 +65,7 @@ test/                ユニットテスト（node:test）
 ```bash
 npm install     # devDependencies（typescript / @types/node）のみ
 npm run build   # tsc でコンパイル
-npm test        # ビルド + node --test（63 テスト）
+npm test        # ビルド + node --test（77 テスト）
 ```
 
 ## 設計上の絶対原則

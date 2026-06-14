@@ -21,6 +21,7 @@ import type { Diagnosis, Patient, Visit } from "../../src/domain/types.js";
 import { monthlyClaimToReceipt, type VisitClaim } from "../../src/receipt/from-claim.js";
 import { assembleUkeFile, type UkeFileInput } from "../../src/receipt/build.js";
 import { encodeUkeFile, serializeFile } from "../../src/receipt/uke.js";
+import { isSubmittable, validateUkeRecords, type ValidationIssue } from "../../src/receipt/validate.js";
 
 const SINCE = "2026-04-01";
 
@@ -83,6 +84,10 @@ export interface UkeExportResult {
   totalPoints: number;
   /** 診療実日数（受診日数） */
   visitDays: number;
+  /** 提出前自己点検（受付・事務点検ASP相当）の指摘 */
+  validation: ValidationIssue[];
+  /** reject が無く提出可能か */
+  submittable: boolean;
 }
 
 /** 1受診分をエンジンで計算する */
@@ -146,6 +151,7 @@ export function generateDemoUke(): UkeExportResult {
 
   const records = assembleUkeFile({ facility, receipts: [receipt] });
   const bytes = encodeUkeFile(records);
+  const validation = validateUkeRecords(records);
   return {
     text: serializeFile(records).replace(/\r\n/g, "\n"),
     bytes,
@@ -153,6 +159,8 @@ export function generateDemoUke(): UkeExportResult {
     byteLength: bytes.length,
     totalPoints,
     visitDays,
+    validation,
+    submittable: isSubmittable(validation),
   };
 }
 

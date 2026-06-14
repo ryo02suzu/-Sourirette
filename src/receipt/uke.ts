@@ -43,3 +43,30 @@ export function encodeUkeFile(records: UkeRecord[]): Uint8Array {
   out[body.length] = 0x1a;
   return out;
 }
+
+/**
+ * 1行（CR+LF を除いた文字列）をレコードへ復元する。
+ * 仕様上フィールドにカンマ・引用符は現れないため、カンマ単純分割で復元できる。
+ */
+export function parseRecord(line: string): UkeRecord {
+  const parts = line.split(",");
+  const identifier = parts[0] ?? "";
+  return { identifier, fields: parts.slice(1) };
+}
+
+/** ファイル全体テキスト（CR+LF 区切り。末尾 EOF・空行は無視）をレコード列へ復元する */
+export function parseFile(text: string): UkeRecord[] {
+  const withoutEof = text.replace(/\x1a\s*$/, "");
+  return withoutEof
+    .split(/\r\n|\n/)
+    .filter((line) => line !== "")
+    .map(parseRecord);
+}
+
+/** Shift_JIS バイト列（RECEIPTS.UKE の実体）をレコード列へ復元する */
+export function decodeUkeFile(bytes: Uint8Array): UkeRecord[] {
+  // EOF コード（0x1A）を除去してから Shift_JIS デコード
+  const end = bytes.length > 0 && bytes[bytes.length - 1] === 0x1a ? bytes.length - 1 : bytes.length;
+  const text = new TextDecoder("shift_jis").decode(bytes.subarray(0, end));
+  return parseFile(text);
+}

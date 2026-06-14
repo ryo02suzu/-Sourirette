@@ -27,7 +27,14 @@ export function ReceiptsScreen({ onOpenChart }: { onOpenChart(): void }) {
       const result = generateDemoUke();
       setUke(result);
       downloadUke(result.bytes);
-      toast(`RECEIPTS.UKE を生成しました（${result.recordCount}レコード / ${result.byteLength}バイト・Shift_JIS）`);
+      if (result.submittable) {
+        toast(
+          `RECEIPTS.UKE を生成し、提出前自己点検（${result.validation.length}件の指摘）に通りました（${result.recordCount}レコード / ${result.byteLength}バイト・Shift_JIS）`,
+        );
+      } else {
+        const rejects = result.validation.filter((v) => v.severity === "reject").length;
+        toast(`UKEを生成しましたが、自己点検で受付不能の指摘が${rejects}件あります。提出前に修正が必要です`, "error");
+      }
     } catch (e) {
       toast(`UKE生成に失敗しました: ${e instanceof Error ? e.message : String(e)}`, "error");
     }
@@ -70,6 +77,24 @@ export function ReceiptsScreen({ onOpenChart }: { onOpenChart(): void }) {
               1枚に集約し（同一診療行為は算定日情報にマージ）、記録条件仕様（歯科用）令和8年6月版の
               レコード定義どおりに直列化しています。⚠️点数はサンプル値（公式マスタ取込後に実点数へ）。
             </div>
+            <div
+              className="tiny"
+              style={{ marginBottom: 8, color: uke.submittable ? "var(--ok, #2a7)" : "var(--error)", fontWeight: 700 }}
+            >
+              {uke.submittable
+                ? `✓ 提出前自己点検（受付・事務点検ASP相当）に通りました（受付不能の指摘なし）`
+                : `⚠ 自己点検で受付不能の指摘があります`}
+            </div>
+            {uke.validation.length > 0 && (
+              <ul className="tiny" style={{ margin: "0 0 8px", paddingLeft: 18 }}>
+                {uke.validation.map((v, i) => (
+                  <li key={i} style={{ color: v.severity === "reject" ? "var(--error)" : "var(--warn)" }}>
+                    [{v.code}] {v.message}
+                    {v.receiptNo ? `（レセプト${v.receiptNo}）` : ""}
+                  </li>
+                ))}
+              </ul>
+            )}
             <pre
               style={{
                 margin: 0,
