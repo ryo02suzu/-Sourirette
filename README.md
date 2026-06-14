@@ -65,8 +65,23 @@ test/                ユニットテスト（node:test）
 ```bash
 npm install     # devDependencies（typescript / @types/node）のみ
 npm run build   # tsc でコンパイル
-npm test        # ビルド + node --test（102 テスト）
+npm test        # ビルド + node --test（126 テスト）
 ```
+
+### 算定サーバ（本番形バックエンド）
+
+公式データ（実点数マスタ・電子点数表の回数/背反/包括・別表Ⅰ摘要欄・傷病名）で構成した
+算定エンジンを HTTP で公開する。カルテ入力 → **実点数の算定・UKE生成・提出前点検・摘要欄候補**
+が返る。Node 標準のみ。
+
+```bash
+npm run serve     # → http://localhost:8787
+# GET  /api/health   稼働確認＋取込件数
+# POST /api/receipt  カルテ入力(JSON) → UKE・点数・点検結果・摘要欄候補(JSON)
+```
+
+> ⚠️ 実提出（オンライン請求）には確認試験・閉域網・証明書が別途必要（コード外）。
+> 本サーバは医院がローカルで「算定→UKE生成→自己点検」を実際に使うための仕組み。
 
 ## 設計上の絶対原則
 
