@@ -10,6 +10,7 @@ import { join, dirname } from "node:path";
 import { parseRulesDb } from "../src/billing/rules-db-loader.js";
 import { buildCodeToKubun } from "../src/billing/betsu1-loader.js";
 import { decodeSjis } from "../src/billing/master-loader.js";
+import { buildDiseaseNameIndex, parseDiseaseMaster } from "../src/billing/disease-loader.js";
 import { evaluateAlerts, type AlertConfig } from "../src/alerts/engine.js";
 import { makeContextKey, type AlertInput } from "../src/alerts/types.js";
 
@@ -93,4 +94,39 @@ test("既読学習: 承認済みパターンは抑制される", () => {
 
 test("ブロックしない設計: errorでもアラートを返すだけ（例外を投げない）", () => {
   assert.doesNotThrow(() => evaluateAlerts({ procedureCodes: [SHOSHIN], diseaseCodes: [PUL], notifiedStandards: [] }, cfg));
+});
+
+// --- R8追補（DP047-095/FS011-026/AT018-036）と和名解決・集約の検証 ---
+
+// 研究DBの和名トークン（"歯肉炎"等）解決のため、傷病名マスタの和名→コード索引を用意
+const diseaseNameToCodes = buildDiseaseNameIndex(
+  parseDiseaseMaster(decodeSjis(new Uint8Array(readFileSync(join(ROOT, "data/masters/b_20260601.txt"))))).concat(
+    parseDiseaseMaster(decodeSjis(new Uint8Array(readFileSync(join(ROOT, "data/masters/hb_20260601.txt"))))),
+  ),
+);
+const cfgName: AlertConfig = { rulesDb, codeToKubun, diseaseNameToCodes };
+const G_CODE = diseaseNameToCodes.get("歯肉炎")![0]!; // 和名→コード
+const BATSUSHI = [...codeToKubun].find(([, k]) => k === "J000")![0]!; // 抜歯手術 = 区分 J000
+
+test("DP080(追補): 和名「歯肉炎」で抜歯手術 → 不適応warningが発火（和名解決）", () => {
+  const alerts = evaluateAlerts({ procedureCodes: [BATSUSHI], diseaseCodes: [G_CODE] }, cfgName);
+  assert.ok(alerts.some((a) => a.category === "diagnosis_procedure" && a.title.includes("不適応") && a.diseaseCode === G_CODE));
+});
+
+test("不適応の集約: 同一(処置×病名)は複数事例があっても1件だけ", () => {
+  const alerts = evaluateAlerts({ procedureCodes: [BATSUSHI], diseaseCodes: [G_CODE] }, cfgName);
+  const forbiddenForG = alerts.filter((a) => a.title.includes("不適応") && a.procedureCode === BATSUSHI && a.diseaseCode === G_CODE);
+  assert.equal(forbiddenForG.length, 1, "同一(処置×病名)の不適応が重複している");
+});
+
+test("対応病名なしの集約: 必要病名を持つ事例が複数でも処置あたり最大1件", () => {
+  const alerts = evaluateAlerts({ procedureCodes: [BATSUSHI], diseaseCodes: [G_CODE] }, cfgName);
+  const reqMissing = alerts.filter((a) => a.title.includes("対応病名なし") && a.procedureCode === BATSUSHI);
+  assert.ok(reqMissing.length <= 1, "対応病名なしが処置あたり2件以上出ている");
+});
+
+test("和名解決なしでも従来の略号トークンは解決される（後方互換）", () => {
+  // diseaseNameToCodes 無し設定でも DP001(抜髄×Per) は従来どおり発火
+  const alerts = evaluateAlerts({ procedureCodes: [BATSUZUI], diseaseCodes: [PER] }, cfg);
+  assert.ok(alerts.some((a) => a.ruleId === "DP001" && a.level === "warning"));
 });

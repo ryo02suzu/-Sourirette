@@ -58,6 +58,27 @@ export function buildDiseaseIndex(rows: readonly DiseaseRow[]): Map<string, Dise
   return map;
 }
 
+/**
+ * 傷病名（基本名称・省略名称）→ 7桁コード群 の索引。
+ * 算定ルール調査DBの病名トークン（"歯の亜脱臼"・"歯肉膿瘍" 等の和名）を
+ * コードに解決するために使う（完全一致）。同名複数コードは全て保持する。
+ */
+export function buildDiseaseNameIndex(rows: readonly DiseaseRow[]): Map<string, string[]> {
+  const map = new Map<string, string[]>();
+  const add = (name: string, code: string): void => {
+    const key = name.trim();
+    if (key === "") return;
+    let arr = map.get(key);
+    if (arr === undefined) map.set(key, (arr = []));
+    if (!arr.includes(code)) arr.push(code);
+  };
+  for (const r of rows) {
+    add(r.name, r.code);
+    if (r.shortName !== "") add(r.shortName, r.code);
+  }
+  return map;
+}
+
 /** 傷病名コードがマスタに存在するか（未コード化傷病名 0000999 は別途許容） */
 export function isKnownDiseaseCode(code: string, index: Map<string, DiseaseRow>): boolean {
   return code === "0000999" || index.has(code);

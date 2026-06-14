@@ -36,7 +36,7 @@ import {
   requiredCommentsFor,
   type Betsu1Entry,
 } from "./betsu1-loader.js";
-import { buildDiseaseIndex, decodeDiseaseMaster, isKnownDiseaseCode, parseDiseaseMaster, type DiseaseRow } from "./disease-loader.js";
+import { buildDiseaseIndex, buildDiseaseNameIndex, decodeDiseaseMaster, isKnownDiseaseCode, parseDiseaseMaster, type DiseaseRow } from "./disease-loader.js";
 
 /** 復号前の公式データソース（Shift_JIS は Uint8Array、別表ⅠはUTF-8） */
 export interface OfficialDataSources {
@@ -75,6 +75,8 @@ export interface OfficialEngine {
   betsu1Index: Map<string, Betsu1Entry[]>;
   /** 傷病名コード → 傷病名行（傷病名マスタ未指定時は空） */
   diseaseIndex: Map<string, DiseaseRow>;
+  /** 傷病名（和名）→ 7桁コード群（研究DBの和名トークン解決用） */
+  diseaseNameToCodes: Map<string, string[]>;
   /** 区分 → 算定可能な加算/通則ヒント（算定もれ提示用） */
   chargeHintsByKubun: Map<string, AgeTimeSiteEntry[]>;
   /** 算定ルール調査DB（アラートエンジン用。未指定時は undefined） */
@@ -136,11 +138,12 @@ export function loadOfficialEngine(src: OfficialDataSources, validFrom = "2024-0
   const betsu1Index = indexByKubun(betsu1Entries);
   const diseaseRows = (src.diseaseMasters ?? []).flatMap((m) => parseDiseaseMaster(decodeDiseaseMaster(m)));
   const diseaseIndex = buildDiseaseIndex(diseaseRows);
+  const diseaseNameToCodes = buildDiseaseNameIndex(diseaseRows);
 
   // 算定ルール調査DB（病名適応の不適応＝warning）を区分→9桁コードに展開して有効化
   const rulesDb = src.rulesDbJson !== undefined ? parseRulesDb(src.rulesDbJson) : undefined;
   const diagnosisRequirements = rulesDb !== undefined
-    ? buildDiagnosisRequirements(rulesDb, buildKubunToCodes(masterText))
+    ? buildDiagnosisRequirements(rulesDb, buildKubunToCodes(masterText), diseaseNameToCodes)
     : [];
   const chargeHintsByKubun = rulesDb !== undefined ? buildChargeHintsByKubun(rulesDb) : new Map<string, AgeTimeSiteEntry[]>();
 
@@ -157,6 +160,7 @@ export function loadOfficialEngine(src: OfficialDataSources, validFrom = "2024-0
     codeToKubun,
     betsu1Index,
     diseaseIndex,
+    diseaseNameToCodes,
     chargeHintsByKubun,
     ...(rulesDb !== undefined ? { rulesDb } : {}),
     counts: { frequencyLimits: frequencyLimits.length, mutualExclusions: mutualExclusions.length, inclusionGroups, betsu1Entries: betsu1Entries.length, diseases: diseaseIndex.size, diagnosisRules: diagnosisRequirements.length },
@@ -177,7 +181,7 @@ export function isValidDisease(loaded: OfficialEngine, code: string): boolean {
 /** 算定支援アラートを評価する（公式エンジンの調査DB＋区分対応を使う）。調査DB未指定なら空 */
 export function computeAlerts(loaded: OfficialEngine, input: AlertInput, acknowledged?: Set<string>): Alert[] {
   if (loaded.rulesDb === undefined) return [];
-  return evaluateAlerts(input, { rulesDb: loaded.rulesDb, codeToKubun: loaded.codeToKubun, ...(acknowledged !== undefined ? { acknowledged } : {}) });
+  return evaluateAlerts(input, { rulesDb: loaded.rulesDb, codeToKubun: loaded.codeToKubun, diseaseNameToCodes: loaded.diseaseNameToCodes, ...(acknowledged !== undefined ? { acknowledged } : {}) });
 }
 
 /**

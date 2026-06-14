@@ -9,8 +9,8 @@
  *   - facility_standard   → error（未届の施設基準で gated_procedure を算定）
  *   - age_time_site       → proposal（取りこぼし: 該当すれば算定できる加算/通則）
  */
-import type { RulesDb } from "../billing/rules-db-loader.js";
-import { buildDiseaseAbbrToCodes } from "../billing/rules-db-loader.js";
+import type { RulesDb, DiseaseResolver } from "../billing/rules-db-loader.js";
+import { buildDiseaseAbbrToCodes, resolveDiseaseCodes } from "../billing/rules-db-loader.js";
 import type { Alert, AlertInput } from "./types.js";
 import { makeContextKey } from "./types.js";
 
@@ -18,6 +18,8 @@ export interface AlertConfig {
   rulesDb: RulesDb;
   /** 9桁診療行為コード → 区分（告示番号）。区分単位のルール照合に使う */
   codeToKubun: Map<string, string>;
+  /** 傷病名（和名）→ 7桁コード群。研究DBの和名トークンの解決に使う（任意） */
+  diseaseNameToCodes?: Map<string, string[]>;
   /** 既読（承認済み）の contextKey 集合。一致するアラートは抑制する */
   acknowledged?: Set<string>;
 }
@@ -26,15 +28,6 @@ export interface AlertConfig {
 function extractKubun(s: string): string | undefined {
   const m = s.match(/[A-Z]\d{3}(?:-\d+)?/);
   return m ? m[0] : undefined;
-}
-
-/** "Pul/5220063" や "Pul" を関連7桁コード群に解決する */
-function resolveDiseaseCodes(token: string, abbrToCodes: Map<string, string[]>): string[] {
-  const [abbr, code] = token.split("/");
-  const out = new Set<string>();
-  if (abbr !== undefined) for (const c of abbrToCodes.get(abbr) ?? []) out.add(c);
-  if (code !== undefined && /^\d{7}$/.test(code)) out.add(code);
-  return [...out];
 }
 
 /** 年齢条件（"6歳未満"等）が患者年齢に該当しないと明確に分かるか。未指定/不明は false（提示する） */
@@ -52,7 +45,7 @@ function ageConditionExcluded(condition: string, age: number | undefined): boole
 export function evaluateAlerts(input: AlertInput, cfg: AlertConfig): Alert[] {
   const { rulesDb, codeToKubun } = cfg;
   const acknowledged = cfg.acknowledged ?? new Set<string>();
-  const abbrToCodes = buildDiseaseAbbrToCodes(rulesDb);
+  const resolver: DiseaseResolver = { abbrToCodes: buildDiseaseAbbrToCodes(rulesDb), ...(cfg.diseaseNameToCodes !== undefined ? { nameToCodes: cfg.diseaseNameToCodes } : {}) };
   const diseaseSet = new Set(input.diseaseCodes);
 
   // 算定した区分 → その区分で算定された9桁コード
@@ -84,15 +77,21 @@ export function evaluateAlerts(input: AlertInput, cfg: AlertConfig): Alert[] {
   };
 
   // 1) 病名↔処置の適応 → warning
+  //   - 不適応（forbidden）はブラックリストなので事例ごとに独立して発火する。
+  //   - 適応（required）は「この処置に妥当な病名の一例」。同じ区分に複数の適応事例があり、
+  //     患者はそのどれか1つを満たせば足りる。事例ごとに「対応病名なし」を出すと
+  //     同じ処置に重複警告が乱発するため、処置コード単位で必要病名を合算し1件に集約する。
+  const reqByCode = new Map<string, { codes: Set<string>; labels: Set<string>; name: string; sources: Set<string> }>();
+  const forbiddenSeen = new Set<string>(); // 同一(処置×病名)の不適応は事例が複数あっても1件に集約
   for (const dp of rulesDb.diagnosis_procedure) {
     const hits = matchedCodes(dp.procedure_kubun, dp.procedure_codes);
     if (hits.length === 0) continue;
-    const forbidden = (dp.forbidden_diseases ?? []).flatMap((t) => resolveDiseaseCodes(t, abbrToCodes));
-    const required = (dp.required_diseases ?? []).flatMap((t) => resolveDiseaseCodes(t, abbrToCodes));
+    const forbidden = (dp.forbidden_diseases ?? []).flatMap((t) => resolveDiseaseCodes(t, resolver));
     const forbiddenHit = forbidden.find((c) => diseaseSet.has(c));
-    const requiredOk = required.length === 0 || required.some((c) => diseaseSet.has(c));
+    const required = (dp.required_diseases ?? []).flatMap((t) => resolveDiseaseCodes(t, resolver));
     for (const code of hits) {
-      if (forbiddenHit !== undefined) {
+      if (forbiddenHit !== undefined && !forbiddenSeen.has(`${code}#${forbiddenHit}`)) {
+        forbiddenSeen.add(`${code}#${forbiddenHit}`);
         push({
           level: "warning",
           category: "diagnosis_procedure",
@@ -106,20 +105,30 @@ export function evaluateAlerts(input: AlertInput, cfg: AlertConfig): Alert[] {
           requiresDentistReview: true,
         });
       }
-      if (required.length > 0 && !requiredOk) {
-        push({
-          level: "warning",
-          category: "diagnosis_procedure",
-          ruleId: dp.id,
-          title: "対応病名なし（審査裁量）",
-          message: `${dp.procedure_name ?? code}: 通常この処置に必要な傷病名（${required.join("/")}）が見当たりません`,
-          source: dp.source ?? "審査情報提供事例",
-          procedureCode: code,
-          contextKey: makeContextKey(dp.id, undefined, code),
-          requiresDentistReview: true,
-        });
+      if (required.length > 0) {
+        let agg = reqByCode.get(code);
+        if (agg === undefined) reqByCode.set(code, (agg = { codes: new Set(), labels: new Set(), name: dp.procedure_name ?? code, sources: new Set() }));
+        for (const c of required) agg.codes.add(c);
+        for (const t of dp.required_diseases ?? []) agg.labels.add(t);
+        if (dp.source !== undefined) agg.sources.add(dp.source);
       }
     }
+  }
+  // 集約後: 必要病名の合算にどれも一致しなければ、処置コードあたり1件だけ「対応病名なし」
+  for (const [code, agg] of reqByCode) {
+    if ([...agg.codes].some((c) => diseaseSet.has(c))) continue;
+    const ruleId = `REQ:${code}`;
+    push({
+      level: "warning",
+      category: "diagnosis_procedure",
+      ruleId,
+      title: "対応病名なし（審査裁量）",
+      message: `${agg.name}: 通常この処置に必要な傷病名（${[...agg.labels].join("／")}）が見当たりません`,
+      source: [...agg.sources].join("・") || "審査情報提供事例",
+      procedureCode: code,
+      contextKey: makeContextKey(ruleId, undefined, code),
+      requiresDentistReview: true,
+    });
   }
 
   // 2) 施設基準 → error（届出状況が分かるときのみ）

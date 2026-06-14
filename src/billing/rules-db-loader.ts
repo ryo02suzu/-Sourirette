@@ -81,12 +81,46 @@ export function buildDiseaseAbbrToCodes(db: RulesDb): Map<string, string[]> {
   return map;
 }
 
-/** "Per/8832354" や "Pul" を関連コード群に解決する */
-function resolveDiseaseCodes(token: string, abbrToCodes: Map<string, string[]>): string[] {
-  const [abbr, code] = token.split("/");
+/** 病名トークン解決に使う索引（略号→コード／和名→コード） */
+export interface DiseaseResolver {
+  /** 病名略号 → 関連7桁コード群（disease_master 由来） */
+  abbrToCodes: Map<string, string[]>;
+  /** 傷病名（基本/省略名称）→ 7桁コード群（傷病名マスタ由来・任意） */
+  nameToCodes?: Map<string, string[]>;
+}
+
+// 単一の病名に解決できないプロセス記述（「C以外の傷病名」「C→Per移行病名」等）はルール化しない
+const UNRESOLVABLE_TOKEN = /以外|→|複数回|算定なし|疑い病名/;
+// 末尾の限定句（「Pのみ」「ZS単独」「…等」）を落としてから解決する
+const TRAILING_QUALIFIER = /(単独|のみ|等)+$/;
+
+/**
+ * 病名トークンを関連7桁コード群に解決する。次の表記をすべて扱う:
+ *   - "Per/8832354"（略号/コード）・"Pul"（略号）
+ *   - "C（う蝕）"（略号＋和名）・"歯の亜脱臼"（和名）・"P/G"（略号の併記）
+ * "/" は併記（OR）として各部を独立に解決する（7桁部分はコードとして採用）。
+ */
+export function resolveDiseaseCodes(token: string, r: DiseaseResolver | Map<string, string[]>): string[] {
+  const resolver: DiseaseResolver = r instanceof Map ? { abbrToCodes: r } : r;
   const out = new Set<string>();
-  if (abbr !== undefined) for (const c of abbrToCodes.get(abbr) ?? []) out.add(c);
-  if (code !== undefined && /^\d{7}$/.test(code)) out.add(code);
+  const raw = token.trim();
+  if (raw === "" || UNRESOLVABLE_TOKEN.test(raw)) return [];
+  for (const part0 of raw.split("/")) {
+    const part = part0.trim();
+    if (/^\d{7}$/.test(part)) {
+      out.add(part);
+      continue;
+    }
+    // 括弧内の和名（"C（う蝕）" → 和名"う蝕"）を取り出しつつ、括弧と限定句を除いた略号/和名を得る
+    const paren = part.match(/[（(]([^（()）]+)[)）]/);
+    const name = paren?.[1]?.trim();
+    const bare = part.replace(/[（(][^（()）]*[)）]/g, "").replace(TRAILING_QUALIFIER, "").trim();
+    for (const c of resolver.abbrToCodes.get(bare) ?? []) out.add(c);
+    if (resolver.nameToCodes !== undefined) {
+      if (name !== undefined && name !== "") for (const c of resolver.nameToCodes.get(name) ?? []) out.add(c);
+      for (const c of resolver.nameToCodes.get(bare) ?? []) out.add(c);
+    }
+  }
   return [...out];
 }
 
@@ -94,13 +128,17 @@ function resolveDiseaseCodes(token: string, abbrToCodes: Map<string, string[]>):
  * diagnosis_procedure の「不適応」→ DiagnosisRequirement[]（病名適応ブラックリスト）。
  * procedure_kubun を9桁コードへ展開し、forbidden_diseases を関連コード群へ展開する。
  */
-export function buildDiagnosisRequirements(db: RulesDb, kubunToCodes: Map<string, string[]>): DiagnosisRequirement[] {
-  const abbrToCodes = buildDiseaseAbbrToCodes(db);
+export function buildDiagnosisRequirements(
+  db: RulesDb,
+  kubunToCodes: Map<string, string[]>,
+  nameToCodes?: Map<string, string[]>,
+): DiagnosisRequirement[] {
+  const resolver: DiseaseResolver = { abbrToCodes: buildDiseaseAbbrToCodes(db), ...(nameToCodes !== undefined ? { nameToCodes } : {}) };
   const out: DiagnosisRequirement[] = [];
   const seen = new Set<string>();
   for (const dp of db.diagnosis_procedure) {
     if (dp.relation !== "不適応") continue; // 「認めない」のみルール化（適応＝肯定確認はスキップ）
-    const forbidden = (dp.forbidden_diseases ?? []).flatMap((t) => resolveDiseaseCodes(t, abbrToCodes));
+    const forbidden = (dp.forbidden_diseases ?? []).flatMap((t) => resolveDiseaseCodes(t, resolver));
     if (forbidden.length === 0) continue;
     const forbiddenUniq = [...new Set(forbidden)];
     // procedure_codes が空なら区分から展開

@@ -8,9 +8,18 @@
    "令和8年厚生労働省告示第71号／保医発0305第8号（R8ハブ https://www.mhlw.go.jp/stf/newpage_67729.html ）",
    "記載要領 別表I 改正通知 保医発0327第2号 https://www.mhlw.go.jp/content/12400000/001681751.pdf",
    "支払基金 審査情報提供事例（歯科） https://www.ssk.or.jp/shinryohoshu/sinsa_jirei/teikyojirei/shika/index.html",
-   "支払基金 コンピュータチェック対象事例 https://www.ssk.or.jp/seikyushiharai/ssk_cc/ssk_cc_300320/index.html"
+   "支払基金 コンピュータチェック対象事例 https://www.ssk.or.jp/seikyushiharai/ssk_cc/ssk_cc_300320/index.html",
+   "告示69号（診療報酬の算定方法の一部を改正する件・歯科点数表、令和8年3月5日）",
+   "保医発0305第6号（実施上の留意事項通知 別添2 歯科点数表に関する事項、令和8年3月5日）",
+   "告示70号（基本診療料の施設基準等）／告示71号（特掲診療料の施設基準等）",
+   "保医発0305第7号（基本診療料施設基準 取扱い）／保医発0305第8号（特掲診療料施設基準 取扱い）",
+   "審査情報提供事例（歯科） https://www.ssk.or.jp/shinryohoshu/sinsa_jirei/teikyojirei/shika/index.html",
+   "コンピュータチェックに関する公開基準及び対象事例 https://www.ssk.or.jp/seikyushiharai/ssk_cc/ssk_cc_300320/index.html",
+   "多くの付箋がつくコンピュータチェック事例 可視化レポート（歯科）20251031_cc_shika.pdf",
+   "九州厚生局『令和8年度診療報酬改定に伴う施設基準の届出等について（歯科）令和8年4月14日版』",
+   "厚労省『令和8年度診療報酬改定の概要【歯科】令和8年3月5日版』"
   ],
-  "note": "審査情報提供事例はR6以前発出だが現行有効が多い。R8で取扱い変更の可能性がある事例は個別にneeds_verificationを付す。各事例は『画一的・一律的に適用されるものではない』旨を支払基金が明記、最終適否は審査委員会の歯科医学的判断による。"
+  "note": "審査情報提供事例はR6以前発出だが現行有効が多い。R8で取扱い変更の可能性がある事例は個別にneeds_verificationを付す。各事例は『画一的・一律的に適用されるものではない』旨を支払基金が明記、最終適否は審査委員会の歯科医学的判断による。 ／ R8追補（2026-06-14取込）: 審査情報提供事例 DP047-095・施設基準 FS011-026・通則/注 AT018-036・コンピュータチェック CC004-013 を追加。"
  },
  "disease_master": [
   {
@@ -939,6 +948,824 @@
    "requires_dentist_review": true,
    "needs_code_mapping": true,
    "note": "SRP前の抗菌薬を認める"
+  },
+  {
+   "id": "DP047",
+   "procedure_kubun": "I000",
+   "procedure_codes": [],
+   "procedure_name": "う蝕処置",
+   "required_diseases": [
+    "Pul"
+   ],
+   "forbidden_diseases": [],
+   "relation": "適応",
+   "source": "情提 う蝕処置②（事例84）",
+   "confidence": "high",
+   "severity": "warning",
+   "requires_dentist_review": true,
+   "needs_code_mapping": true,
+   "note": "原則として「歯髄炎（Pul）」病名でう蝕処置の算定を認める。"
+  },
+  {
+   "id": "DP048",
+   "procedure_kubun": "I000",
+   "procedure_codes": [],
+   "procedure_name": "う蝕処置",
+   "required_diseases": [],
+   "forbidden_diseases": [
+    "歯の亜脱臼"
+   ],
+   "relation": "不適応",
+   "source": "情提 う蝕処置③（事例183）",
+   "confidence": "high",
+   "severity": "warning",
+   "requires_dentist_review": true,
+   "needs_code_mapping": true,
+   "note": "原則として「歯の亜脱臼」病名ではう蝕処置の算定を認めない。"
+  },
+  {
+   "id": "DP049",
+   "procedure_kubun": "I000",
+   "procedure_codes": [],
+   "procedure_name": "う蝕処置",
+   "required_diseases": [
+    "FrT（歯の破折）"
+   ],
+   "forbidden_diseases": [],
+   "relation": "適応",
+   "source": "情提 う蝕処置④（事例227）",
+   "confidence": "high",
+   "severity": "warning",
+   "requires_dentist_review": true,
+   "needs_code_mapping": true,
+   "note": "原則として「歯の破折（FrT）」病名でう蝕処置の算定を認める。"
+  },
+  {
+   "id": "DP050",
+   "procedure_kubun": "I000",
+   "procedure_codes": [],
+   "procedure_name": "う蝕処置",
+   "required_diseases": [
+    "C4（残根）"
+   ],
+   "forbidden_diseases": [],
+   "relation": "適応",
+   "source": "情提 う蝕処置⑤（事例229）",
+   "confidence": "high",
+   "severity": "warning",
+   "requires_dentist_review": true,
+   "needs_code_mapping": true,
+   "note": "原則として「残根（C4）」病名でう蝕処置の算定を認める（ 軟化象牙質除去・根管感染進行防止）。"
+  },
+  {
+   "id": "DP051",
+   "procedure_kubun": "I000",
+   "procedure_codes": [],
+   "procedure_name": "う蝕処置",
+   "required_diseases": [
+    "Ero（酸蝕症）"
+   ],
+   "forbidden_diseases": [],
+   "relation": "適応",
+   "source": "情提 う蝕処置⑥（事例230）",
+   "confidence": "high",
+   "severity": "warning",
+   "requires_dentist_review": true,
+   "needs_code_mapping": true,
+   "note": "原則として「酸蝕症（Ero）」病名でう蝕処置の算定を認める。"
+  },
+  {
+   "id": "DP052",
+   "procedure_kubun": "I000",
+   "procedure_codes": [],
+   "procedure_name": "う蝕処置",
+   "required_diseases": [
+    "WSD（歯質くさび状欠損）"
+   ],
+   "forbidden_diseases": [],
+   "relation": "適応",
+   "source": "情提 う蝕処置⑦（事例231）",
+   "confidence": "high",
+   "severity": "warning",
+   "requires_dentist_review": true,
+   "needs_code_mapping": true,
+   "note": "原則として「歯質くさび状欠損（WSD）」病名でう蝕処置の算定を認める。"
+  },
+  {
+   "id": "DP053",
+   "procedure_kubun": "I000/I001",
+   "procedure_codes": [],
+   "procedure_name": "う蝕処置及び歯髄保護処置",
+   "required_diseases": [],
+   "forbidden_diseases": [
+    "脱離"
+   ],
+   "relation": "不適応",
+   "source": "情提 う蝕処置及び歯髄保護処置（事例85）",
+   "confidence": "high",
+   "severity": "warning",
+   "requires_dentist_review": true,
+   "needs_code_mapping": true,
+   "note": "原則として「脱離」の病名のみではう蝕処置又は歯髄保護処置の算定を認めない。"
+  },
+  {
+   "id": "DP054",
+   "procedure_kubun": "I000-2",
+   "procedure_codes": [],
+   "procedure_name": "咬合調整",
+   "required_diseases": [
+    "咬合性外傷"
+   ],
+   "forbidden_diseases": [],
+   "relation": "適応",
+   "source": "情提 咬合調整（事例14）",
+   "confidence": "high",
+   "severity": "warning",
+   "requires_dentist_review": true,
+   "needs_code_mapping": true,
+   "note": "原則として画像診断の算定がない「咬合性外傷」病名での歯冠形態修正による咬合調整を認める。"
+  },
+  {
+   "id": "DP055",
+   "procedure_kubun": "I000-2",
+   "procedure_codes": [],
+   "procedure_name": "咬合調整",
+   "required_diseases": [
+    "P"
+   ],
+   "forbidden_diseases": [],
+   "relation": "適応",
+   "source": "情提 咬合調整④（事例86）",
+   "confidence": "medium",
+   "severity": "warning",
+   "requires_dentist_review": true,
+   "needs_code_mapping": true,
+   "note": "原則として「P」病名で、歯周病検査の算定がない歯周炎に対する咬合調整を認める。"
+  },
+  {
+   "id": "DP056",
+   "procedure_kubun": "I000-2",
+   "procedure_codes": [],
+   "procedure_name": "咬合調整",
+   "required_diseases": [
+    "転位歯"
+   ],
+   "forbidden_diseases": [],
+   "relation": "適応",
+   "source": "情提 咬合調整⑦（事例186）",
+   "confidence": "high",
+   "severity": "warning",
+   "requires_dentist_review": true,
+   "needs_code_mapping": true,
+   "note": "原則として「転位歯」病名で歯冠形態修正を行った場合の咬合調整を認める。"
+  },
+  {
+   "id": "DP057",
+   "procedure_kubun": "I002",
+   "procedure_codes": [],
+   "procedure_name": "知覚過敏処置",
+   "required_diseases": [],
+   "forbidden_diseases": [
+    "C（う蝕）"
+   ],
+   "relation": "不適応",
+   "source": "情提 知覚過敏処置③（事例96）",
+   "confidence": "high",
+   "severity": "warning",
+   "requires_dentist_review": true,
+   "needs_code_mapping": true,
+   "note": "原則として「う蝕（C）」病名では知覚過敏処置の算定を認めない。"
+  },
+  {
+   "id": "DP058",
+   "procedure_kubun": "I002-2",
+   "procedure_codes": [],
+   "procedure_name": "う蝕薬物塗布処置",
+   "required_diseases": [
+    "C（う蝕）"
+   ],
+   "forbidden_diseases": [
+    "C以外の傷病名"
+   ],
+   "relation": "不適応",
+   "source": "情提 う蝕薬物塗布処置③（事例97）",
+   "confidence": "high",
+   "severity": "warning",
+   "requires_dentist_review": true,
+   "needs_code_mapping": true,
+   "note": "原則として「う蝕（C）」以外の傷病名ではう蝕薬物塗布処置の算定を認めない。"
+  },
+  {
+   "id": "DP059",
+   "procedure_kubun": "I004",
+   "procedure_codes": [],
+   "procedure_name": "歯髄切断",
+   "required_diseases": [
+    "Pul（歯髄炎）"
+   ],
+   "forbidden_diseases": [],
+   "relation": "適応",
+   "source": "情提 歯髄切断（事例102）",
+   "confidence": "high",
+   "severity": "warning",
+   "requires_dentist_review": true,
+   "needs_code_mapping": true,
+   "note": "原則として「歯髄炎（Pul）」病名で歯髄切断の算定を認める。"
+  },
+  {
+   "id": "DP062",
+   "procedure_kubun": "I006",
+   "procedure_codes": [],
+   "procedure_name": "感染根管処置",
+   "required_diseases": [
+    "Puエシ（歯髄壊死）"
+   ],
+   "forbidden_diseases": [],
+   "relation": "適応",
+   "source": "情提 感染根管処置②（事例107）",
+   "confidence": "high",
+   "severity": "warning",
+   "requires_dentist_review": true,
+   "needs_code_mapping": true,
+   "note": "原則として「歯髄壊死（Puエシ）」病名で感染根管処置の算定を認める。"
+  },
+  {
+   "id": "DP063",
+   "procedure_kubun": "I006",
+   "procedure_codes": [],
+   "procedure_name": "感染根管処置",
+   "required_diseases": [
+    "Puエソ（歯髄壊疽）"
+   ],
+   "forbidden_diseases": [],
+   "relation": "適応",
+   "source": "情提 感染根管処置③（事例108）",
+   "confidence": "high",
+   "severity": "warning",
+   "requires_dentist_review": true,
+   "needs_code_mapping": true,
+   "note": "原則として「歯髄壊疽（Puエソ）」病名で感染根管処置の算定を認める。"
+  },
+  {
+   "id": "DP064",
+   "procedure_kubun": "I006",
+   "procedure_codes": [],
+   "procedure_name": "感染根管処置",
+   "required_diseases": [
+    "C→Per移行病名"
+   ],
+   "forbidden_diseases": [],
+   "relation": "適応",
+   "source": "情提 感染根管処置⑥（事例193）",
+   "confidence": "high",
+   "severity": "warning",
+   "requires_dentist_review": true,
+   "needs_code_mapping": true,
+   "note": "原則として「う蝕（C）→根尖性歯周炎（Per）」の移行病名で、う蝕歯即時充填形成又はう蝕歯インレー修復形成後の感染根管処置を認める（ Pulを挟まなくてよい）。"
+  },
+  {
+   "id": "DP065",
+   "procedure_kubun": "I010",
+   "procedure_codes": [],
+   "procedure_name": "歯周病処置",
+   "required_diseases": [
+    "P急発"
+   ],
+   "forbidden_diseases": [],
+   "relation": "適応",
+   "source": "情提 歯周病処置②（事例16）",
+   "confidence": "medium",
+   "severity": "warning",
+   "requires_dentist_review": true,
+   "needs_code_mapping": true,
+   "note": "原則として同一診療月で同一歯に「P急発」病名で歯周病処置のみを行い後日抜歯に至った場合、当該歯周病処置を認める。"
+  },
+  {
+   "id": "DP066",
+   "procedure_kubun": "I011-2",
+   "procedure_codes": [],
+   "procedure_name": "歯周病安定期治療",
+   "required_diseases": [
+    "P"
+   ],
+   "forbidden_diseases": [],
+   "relation": "不適応",
+   "source": "情提 歯周病安定期治療（事例52）",
+   "confidence": "medium",
+   "severity": "warning",
+   "requires_dentist_review": true,
+   "needs_code_mapping": true,
+   "needs_verification": true,
+   "note": "原則として「P」病名でスケーリング（再スケーリング含む）のみを実施した場合の歯周病安定期治療は認めない。R8でSPT・P重防が『歯周病継続支援治療』に再編されたため要確認。"
+  },
+  {
+   "id": "DP067",
+   "procedure_kubun": "I014",
+   "procedure_codes": [],
+   "procedure_name": "暫間固定（困難なもの）",
+   "required_diseases": [
+    "亜脱臼/歯の亜脱臼"
+   ],
+   "forbidden_diseases": [],
+   "relation": "適応",
+   "source": "情提 暫間固定（事例6）",
+   "confidence": "high",
+   "severity": "warning",
+   "requires_dentist_review": true,
+   "needs_code_mapping": true,
+   "note": "原則として外傷による歯の亜脱臼の場合は「亜脱臼」又は「歯の亜脱臼」病名で「I014 暫間固定 2 困難なもの」を認める。"
+  },
+  {
+   "id": "DP068",
+   "procedure_kubun": "I014",
+   "procedure_codes": [],
+   "procedure_name": "暫間固定（困難なもの）",
+   "required_diseases": [],
+   "forbidden_diseases": [
+    "FrT（歯の破折）"
+   ],
+   "relation": "不適応",
+   "source": "情提 暫間固定④（事例198）",
+   "confidence": "medium",
+   "severity": "warning",
+   "requires_dentist_review": true,
+   "needs_code_mapping": true,
+   "note": "原則として「歯の破折（FrT）」病名では「I014 暫間固定 2 困難なもの」を認めない。"
+  },
+  {
+   "id": "DP069",
+   "procedure_kubun": "I014",
+   "procedure_codes": [],
+   "procedure_name": "暫間固定（困難なもの）",
+   "required_diseases": [
+    "歯槽骨骨折"
+   ],
+   "forbidden_diseases": [],
+   "relation": "適応",
+   "source": "情提 暫間固定⑤（事例233）",
+   "confidence": "high",
+   "severity": "warning",
+   "requires_dentist_review": true,
+   "needs_code_mapping": true,
+   "note": "原則として「歯槽骨骨折」病名で「I014 暫間固定 2 困難なもの」を認める。"
+  },
+  {
+   "id": "DP070",
+   "procedure_kubun": "I014-2",
+   "procedure_codes": [],
+   "procedure_name": "暫間固定装置修理",
+   "required_diseases": [
+    "ハセツ"
+   ],
+   "forbidden_diseases": [
+    "Pのみ"
+   ],
+   "relation": "不適応",
+   "source": "情提 暫間固定装置修理（事例40）",
+   "confidence": "medium",
+   "severity": "warning",
+   "requires_dentist_review": true,
+   "needs_code_mapping": true,
+   "note": "原則として「P」病名のみの場合は暫間固定装置修理の算定を認めない。"
+  },
+  {
+   "id": "DP071",
+   "procedure_kubun": "I017",
+   "procedure_codes": [],
+   "procedure_name": "口腔内装置（止血シーネ）",
+   "required_diseases": [
+    "後出血"
+   ],
+   "forbidden_diseases": [],
+   "relation": "適応",
+   "source": "情提 口腔内装置（止血シーネ）（事例33）",
+   "confidence": "high",
+   "severity": "warning",
+   "requires_dentist_review": true,
+   "needs_code_mapping": true,
+   "note": "原則として「後出血」病名で、印象採得のない場合の止血シーネを認める。"
+  },
+  {
+   "id": "DP072",
+   "procedure_kubun": "I017-2",
+   "procedure_codes": [],
+   "procedure_name": "口腔内装置修理",
+   "required_diseases": [
+    "ハセツ"
+   ],
+   "forbidden_diseases": [],
+   "relation": "不適応",
+   "source": "情提 口腔内装置修理（事例53）",
+   "confidence": "high",
+   "severity": "warning",
+   "requires_dentist_review": true,
+   "needs_code_mapping": true,
+   "note": "原則として口腔内装置に係る「ハセツ」病名がない場合は「I017-2 2 口腔内装置修理」を認めない。"
+  },
+  {
+   "id": "DP073",
+   "procedure_kubun": "I022",
+   "procedure_codes": [],
+   "procedure_name": "有床義歯床下粘膜調整処置",
+   "required_diseases": [],
+   "forbidden_diseases": [
+    "義歯ハセツ"
+   ],
+   "relation": "不適応",
+   "source": "情提 有床義歯床下粘膜調整処置②（事例129）",
+   "confidence": "high",
+   "severity": "warning",
+   "requires_dentist_review": true,
+   "needs_code_mapping": true,
+   "note": "原則として「義歯ハセツ」病名では有床義歯床下粘膜調整処置を認めない。"
+  },
+  {
+   "id": "DP074",
+   "procedure_kubun": "I030",
+   "procedure_codes": [],
+   "procedure_name": "機械的歯面清掃処置",
+   "required_diseases": [
+    "P急発"
+   ],
+   "forbidden_diseases": [],
+   "relation": "適応",
+   "source": "情提 機械的歯面清掃処置（事例202）",
+   "confidence": "medium",
+   "severity": "warning",
+   "requires_dentist_review": true,
+   "needs_code_mapping": true,
+   "note": "原則として「P急発」病名で機械的歯面清掃処置を認める。"
+  },
+  {
+   "id": "DP075",
+   "procedure_kubun": "M009",
+   "procedure_codes": [],
+   "procedure_name": "充填",
+   "required_diseases": [],
+   "forbidden_diseases": [
+    "脱離"
+   ],
+   "relation": "不適応",
+   "source": "情提 充填（事例169）",
+   "confidence": "high",
+   "severity": "warning",
+   "requires_dentist_review": true,
+   "needs_code_mapping": true,
+   "note": "原則として「脱離」の病名のみでは充填の算定を認めない。"
+  },
+  {
+   "id": "DP076",
+   "procedure_kubun": "M009",
+   "procedure_codes": [],
+   "procedure_name": "充填",
+   "required_diseases": [],
+   "forbidden_diseases": [
+    "疑い病名"
+   ],
+   "relation": "不適応",
+   "source": "情提 充填②（事例170）",
+   "confidence": "high",
+   "severity": "warning",
+   "requires_dentist_review": true,
+   "needs_code_mapping": true,
+   "note": "原則として「疑い」の病名では充填の算定を認めない。"
+  },
+  {
+   "id": "DP077",
+   "procedure_kubun": "M029",
+   "procedure_codes": [],
+   "procedure_name": "有床義歯修理",
+   "required_diseases": [],
+   "forbidden_diseases": [
+    "Dul（口腔褥瘡性潰瘍）"
+   ],
+   "relation": "不適応",
+   "source": "情提 有床義歯修理（事例175）",
+   "confidence": "high",
+   "severity": "warning",
+   "requires_dentist_review": true,
+   "needs_code_mapping": true,
+   "note": "原則として「口腔褥瘡性潰瘍（Dul）」病名では有床義歯修理を認めない。"
+  },
+  {
+   "id": "DP078",
+   "procedure_kubun": "M030",
+   "procedure_codes": [],
+   "procedure_name": "有床義歯内面適合法",
+   "required_diseases": [],
+   "forbidden_diseases": [
+    "義歯ハソン",
+    "低位咬合"
+   ],
+   "relation": "不適応",
+   "source": "情提 有床義歯内面適合法（事例176・177）",
+   "confidence": "high",
+   "severity": "warning",
+   "requires_dentist_review": true,
+   "needs_code_mapping": true,
+   "note": "原則として「義歯ハソン」病名・「低位咬合」病名では有床義歯内面適合法を認めない。"
+  },
+  {
+   "id": "DP079",
+   "procedure_kubun": "J000",
+   "procedure_codes": [],
+   "procedure_name": "抜歯手術 4 埋伏歯",
+   "required_diseases": [
+    "HIT（水平埋伏智歯）等"
+   ],
+   "forbidden_diseases": [
+    "Perico（智歯周囲炎）単独"
+   ],
+   "relation": "不適応",
+   "source": "情提 抜歯手術（埋伏歯）（事例28）",
+   "confidence": "high",
+   "severity": "warning",
+   "requires_dentist_review": true,
+   "needs_code_mapping": true,
+   "note": "原則として「智歯周囲炎（Perico）」病名のみでは「J000 抜歯手術 4 埋伏歯」を認めない（ 埋伏の病名が必要）。"
+  },
+  {
+   "id": "DP080",
+   "procedure_kubun": "J000",
+   "procedure_codes": [],
+   "procedure_name": "抜歯手術",
+   "required_diseases": [],
+   "forbidden_diseases": [
+    "G（歯肉炎）"
+   ],
+   "relation": "不適応",
+   "source": "情提 抜歯手術④（事例130）",
+   "confidence": "high",
+   "severity": "warning",
+   "requires_dentist_review": true,
+   "needs_code_mapping": true,
+   "note": "原則として「G」病名では抜歯手術を認めない。"
+  },
+  {
+   "id": "DP081",
+   "procedure_kubun": "J000",
+   "procedure_codes": [],
+   "procedure_name": "抜歯手術",
+   "required_diseases": [],
+   "forbidden_diseases": [
+    "GA（歯肉膿瘍）"
+   ],
+   "relation": "不適応",
+   "source": "情提 抜歯手術⑥（事例132）",
+   "confidence": "high",
+   "severity": "warning",
+   "requires_dentist_review": true,
+   "needs_code_mapping": true,
+   "note": "原則として「歯肉膿瘍（GA）」病名では抜歯手術を認めない。"
+  },
+  {
+   "id": "DP082",
+   "procedure_kubun": "J000",
+   "procedure_codes": [],
+   "procedure_name": "抜歯手術（難抜歯加算）",
+   "required_diseases": [
+    "P",
+    "P急発",
+    "HRT",
+    "HET",
+    "矮小歯",
+    "C4"
+   ],
+   "forbidden_diseases": [],
+   "relation": "適応",
+   "source": "情提 抜歯手術（難抜歯加算）（事例45・235・236・237・238・239）",
+   "confidence": "high",
+   "severity": "warning",
+   "requires_dentist_review": true,
+   "needs_code_mapping": true,
+   "note": "原則として「P」「P急発」「半埋伏歯（HRT）」「水平智歯（HET）」「矮小歯」「残根（C4）」病名で難抜歯加算を認める（歯根肥大・骨癒着・歯根彎曲等で骨開削等を行う場合）。"
+  },
+  {
+   "id": "DP083",
+   "procedure_kubun": "J001",
+   "procedure_codes": [],
+   "procedure_name": "ヘミセクション（分割抜歯）",
+   "required_diseases": [
+    "Per（根尖性歯周炎）/FrT"
+   ],
+   "forbidden_diseases": [],
+   "relation": "適応",
+   "source": "情提 ヘミセクション（事例134・135）",
+   "confidence": "high",
+   "severity": "warning",
+   "requires_dentist_review": true,
+   "needs_code_mapping": true,
+   "note": "原則として「根尖性歯周炎（Per）」「歯の破折（FrT）」病名でヘミセクション（分割抜歯）を認める。"
+  },
+  {
+   "id": "DP084",
+   "procedure_kubun": "J003",
+   "procedure_codes": [],
+   "procedure_name": "歯根嚢胞摘出手術",
+   "required_diseases": [
+    "WZ（歯根嚢胞）"
+   ],
+   "forbidden_diseases": [
+    "Per単独"
+   ],
+   "relation": "不適応",
+   "source": "情提 歯根嚢胞摘出手術（事例139）",
+   "confidence": "high",
+   "severity": "warning",
+   "requires_dentist_review": true,
+   "needs_code_mapping": true,
+   "note": "原則として「根尖性歯周炎（Per）」病名のみでは歯根嚢胞摘出手術を認めない（ 嚢胞病名が必要）。"
+  },
+  {
+   "id": "DP085",
+   "procedure_kubun": "J013",
+   "procedure_codes": [],
+   "procedure_name": "口腔内消炎手術 1 智歯周囲炎の歯肉弁切除等",
+   "required_diseases": [
+    "萌出性歯肉炎/歯冠周囲炎/Perico"
+   ],
+   "forbidden_diseases": [],
+   "relation": "適応",
+   "source": "情提 口腔内消炎手術②⑭（事例8・241）",
+   "confidence": "high",
+   "severity": "warning",
+   "requires_dentist_review": true,
+   "needs_code_mapping": true,
+   "note": "原則として「萌出性歯肉炎」「智歯周囲炎（Perico）」病名で「J013 口腔内消炎手術 1 智歯周囲炎の歯肉弁切除等」を認める。"
+  },
+  {
+   "id": "DP086",
+   "procedure_kubun": "J027",
+   "procedure_codes": [],
+   "procedure_name": "頬、口唇、舌小帯形成術",
+   "required_diseases": [],
+   "forbidden_diseases": [
+    "Perico（智歯周囲炎）"
+   ],
+   "relation": "不適応",
+   "source": "情提 頬、口唇、舌小帯形成術（事例146）",
+   "confidence": "high",
+   "severity": "warning",
+   "requires_dentist_review": true,
+   "needs_code_mapping": true,
+   "note": "原則として「智歯周囲炎（Perico）」病名では「頬、口唇、舌小帯形成術」を認めない。"
+  },
+  {
+   "id": "DP087",
+   "procedure_kubun": "J047",
+   "procedure_codes": [],
+   "procedure_name": "腐骨除去手術 1 歯槽部に限局するもの",
+   "required_diseases": [],
+   "forbidden_diseases": [
+    "エプーリス"
+   ],
+   "relation": "不適応",
+   "source": "情提 腐骨除去手術（事例149）",
+   "confidence": "high",
+   "severity": "warning",
+   "requires_dentist_review": true,
+   "needs_code_mapping": true,
+   "note": "原則として「エプーリス」病名では「J047 腐骨除去手術 1 歯槽部に限局するもの」を認めない。"
+  },
+  {
+   "id": "DP088",
+   "procedure_kubun": "J047",
+   "procedure_codes": [],
+   "procedure_name": "腐骨除去手術",
+   "required_diseases": [
+    "骨髄炎"
+   ],
+   "forbidden_diseases": [],
+   "relation": "適応",
+   "source": "情提 腐骨除去手術②（事例150）",
+   "confidence": "high",
+   "severity": "warning",
+   "requires_dentist_review": true,
+   "needs_code_mapping": true,
+   "note": "原則として「骨髄炎」病名で腐骨除去手術を認める。"
+  },
+  {
+   "id": "DP089",
+   "procedure_kubun": "D001",
+   "procedure_codes": [],
+   "procedure_name": "細菌簡易培養検査",
+   "required_diseases": [
+    "Puエソ（歯髄壊疽）"
+   ],
+   "forbidden_diseases": [],
+   "relation": "適応",
+   "source": "情提 細菌簡易培養検査（事例65）",
+   "confidence": "high",
+   "severity": "warning",
+   "requires_dentist_review": true,
+   "needs_code_mapping": true,
+   "note": "原則として「歯髄壊疽（Puエソ）」病名で細菌簡易培養検査を認める。"
+  },
+  {
+   "id": "DP090",
+   "procedure_kubun": "D002",
+   "procedure_codes": [],
+   "procedure_name": "歯周病検査",
+   "required_diseases": [
+    "P/G"
+   ],
+   "forbidden_diseases": [
+    "ZS（歯石沈着症）単独"
+   ],
+   "relation": "不適応",
+   "source": "情提 歯周病検査（事例13）",
+   "confidence": "high",
+   "severity": "warning",
+   "requires_dentist_review": true,
+   "needs_code_mapping": true,
+   "note": "原則として「歯石沈着症（ZS）」病名のみでは歯周病検査を認めない。"
+  },
+  {
+   "id": "DP091",
+   "procedure_kubun": "E000",
+   "procedure_codes": [],
+   "procedure_name": "歯科エックス線撮影（写真診断）",
+   "required_diseases": [
+    "上顎洞炎"
+   ],
+   "forbidden_diseases": [],
+   "relation": "適応",
+   "source": "情提 写真診断⑤（事例70）",
+   "confidence": "high",
+   "severity": "warning",
+   "requires_dentist_review": true,
+   "needs_code_mapping": true,
+   "note": "原則として「上顎洞炎」病名で歯科エックス線撮影（全顎撮影以外の場合）を認める。"
+  },
+  {
+   "id": "DP092",
+   "procedure_kubun": "E000",
+   "procedure_codes": [],
+   "procedure_name": "歯科パノラマ断層撮影",
+   "required_diseases": [],
+   "forbidden_diseases": [
+    "処置・手術算定なしの複数回撮影"
+   ],
+   "relation": "不適応",
+   "source": "情提 写真診断⑦（事例72）",
+   "confidence": "medium",
+   "severity": "warning",
+   "requires_dentist_review": true,
+   "needs_code_mapping": true,
+   "note": "原則として処置又は手術の算定がない、同月又は連月の複数回の歯科パノラマ断層撮影は認めない。"
+  },
+  {
+   "id": "DP093",
+   "procedure_kubun": "K000",
+   "procedure_codes": [],
+   "procedure_name": "伝達麻酔",
+   "required_diseases": [
+    "P",
+    "AA（歯槽膿瘍）"
+   ],
+   "forbidden_diseases": [],
+   "relation": "適応",
+   "source": "情提 伝達麻酔①⑤（事例49・159）",
+   "confidence": "high",
+   "severity": "warning",
+   "requires_dentist_review": true,
+   "needs_code_mapping": true,
+   "note": "原則として下顎臼歯部の「P」病名の抜歯手術や「歯槽膿瘍（AA）」の口腔内消炎手術を行うにあたっての伝達麻酔を認める。"
+  },
+  {
+   "id": "DP094",
+   "procedure_kubun": "B000-4",
+   "procedure_codes": [],
+   "procedure_name": "歯科疾患管理料",
+   "required_diseases": [
+    "G（歯肉炎）"
+   ],
+   "forbidden_diseases": [],
+   "relation": "適応",
+   "source": "情提 歯科疾患管理料（事例1）",
+   "confidence": "medium",
+   "severity": "warning",
+   "requires_dentist_review": true,
+   "needs_code_mapping": true,
+   "needs_verification": true,
+   "note": "原則として診療開始日から4か月以上経過した患者に「G」病名のみで歯科疾患管理料のみの算定を認める。 R8で歯科疾患管理料の注1（初診月起算2月以内1回）が改正されたため要確認。"
+  },
+  {
+   "id": "DP095",
+   "procedure_kubun": "B001-3",
+   "procedure_codes": [],
+   "procedure_name": "歯周病患者画像活用指導料",
+   "required_diseases": [
+    "P"
+   ],
+   "forbidden_diseases": [],
+   "relation": "適応",
+   "source": "情提 歯周病患者画像活用指導料（事例256）",
+   "confidence": "high",
+   "severity": "warning",
+   "requires_dentist_review": true,
+   "needs_code_mapping": true,
+   "note": "原則として歯周病に罹患している患者に歯周病検査を実施する場合、「P」病名の歯数にかかわらず口腔内写真5枚までの歯周病患者画像活用指導料を認める。"
   }
  ],
  "facility_standard": [
@@ -1067,6 +1894,177 @@
    ],
    "requirement_summary": "歯科補綴治療に係る3年以上の経験を持つ歯科医師配置、院内にデジタル印象採得装置保有。R8で100→150点、CAD/CAM冠にも対象拡大。",
    " source": "告示第71号／保医発0305第8号",
+   "confidence": "medium",
+   "requires_dentist_review": false
+  },
+  {
+   "id": "FS011",
+   "standard_name": "電子的歯科診療情報連携体制整備加算1",
+   "besshi5_code": "電子的歯科診療情報連携体制整備加算1",
+   "gated_procedure_codes": [
+    "A000",
+    "A001"
+   ],
+   "requirement_summary": "令和8年度新設。未届出だと初診料注15・再診料注12の当該加算（初診時9点・再診時2点）が算定不可。マイナ保険証利用率30%以上（原則として適用時期の3か月前のレセプト件数ベース利用率で判定）、電子処方箋及び電子カルテ情報共有サービスへの対応、明細書無償交付のウェブ掲示等が要件。旧『医療DX推進体制整備加算』『医療情報取得加算』は廃止され自動移行しないため再届出が必要（届出期間：令和8年5月7日〜6月1日必着）。",
+   "source": "告示70号／保医発0305第7号、九州厚生局 表1（令和8年4月14日版）、疑義解釈その1 問3",
+   "confidence": "high",
+   "requires_dentist_review": false
+  },
+  {
+   "id": "FS012",
+   "standard_name": "電子的歯科診療情報連携体制整備加算2",
+   "besshi5_code": "電子的歯科診療情報連携体制整備加算2",
+   "gated_procedure_codes": [
+    "A000",
+    "A001"
+   ],
+   "requirement_summary": "令和8年度新設。未届出だと初診料注15の当該加算（初診時4点）が算定不可（歯科は加算1・2の2区分、再診料は一律2点）。電子処方箋・電子カルテ情報共有サービスへの対応が未達の場合の下位区分。マイナ保険証利用率30%以上等の共通要件は加算1と同様。旧加算からの自動移行なしで再届出必須。",
+   "source": "告示70号／保医発0305第7号、九州厚生局 表1、疑義解釈その1 問3",
+   "confidence": "high",
+   "requires_dentist_review": false
+  },
+  {
+   "id": "FS013",
+   "standard_name": "特別管理加算",
+   "besshi5_code": "特別管理加算",
+   "gated_procedure_codes": [],
+   "requirement_summary": "令和8年度新設の特掲診療料施設基準。未届出だと当該加算が算定不可。障害者歯科医療における歯科医学的管理の新たな評価に係るもので、都道府県等（からの委託を受けた保険医療機関等）との連携等が要件。",
+   "source": "告示71号／保医発0305第8号、九州厚生局 表1",
+   "confidence": "medium",
+   "requires_dentist_review": false
+  },
+  {
+   "id": "FS014",
+   "standard_name": "口腔機能実地指導料",
+   "besshi5_code": "口腔機能実地指導料",
+   "gated_procedure_codes": [
+    "B001-2-2"
+   ],
+   "requirement_summary": "令和8年度新設（B001-2-2、46点、月1回）。未届出だと算定不可。口腔機能発達不全症及び口腔機能低下症の実地指導に係る研修を受講した歯科衛生士1名以上の配置、指導実施時間の設定、専用ユニット確保、当該歯科衛生士の処遇改善の取組が要件（届出様式17の4）。研修は対面又は顔の見えるオンライン受講が必須（アーカイブ視聴は不可）。令和9年5月診療分までは研修受講予定の記載で届出可（経過措置）。",
+   "source": "告示69号 B001-2-2／保医発0305第6号／告示71号／保医発0305第8号、疑義解釈その1",
+   "confidence": "high",
+   "requires_dentist_review": false
+  },
+  {
+   "id": "FS015",
+   "standard_name": "3次元プリント有床義歯",
+   "besshi5_code": "3次元プリント有床義歯",
+   "gated_procedure_codes": [],
+   "requirement_summary": "令和8年度新設の特掲診療料施設基準。未届出だと3次元プリント有床義歯に係る点数が算定不可。",
+   "source": "告示71号／保医発0305第8号、九州厚生局 表1",
+   "confidence": "medium",
+   "requires_dentist_review": false
+  },
+  {
+   "id": "FS016",
+   "standard_name": "歯科吸入鎮静法又は歯科静脈麻酔（Ⅱ）",
+   "besshi5_code": "歯科吸入麻酔／歯科静脈麻酔（Ⅱ）",
+   "gated_procedure_codes": [],
+   "requirement_summary": "令和8年度新設の特掲診療料施設基準。未届出だと歯科吸入鎮静法又は歯科静脈麻酔（Ⅱ）が算定不可。",
+   "source": "告示71号／保医発0305第8号、九州厚生局 表1",
+   "confidence": "medium",
+   "requires_dentist_review": false
+  },
+  {
+   "id": "FS017",
+   "standard_name": "頭頸部悪性腫瘍センチネルリンパ節生検加算",
+   "besshi5_code": "頭頸部悪性腫瘍センチネルリンパ節生検加算",
+   "gated_procedure_codes": [],
+   "requirement_summary": "令和8年度新設（歯科点数表第2章第9部手術の通則7／医科手術通則9）。未届出だと当該加算が算定不可。",
+   "source": "告示71号／保医発0305第8号、九州厚生局 表1",
+   "confidence": "medium",
+   "requires_dentist_review": false
+  },
+  {
+   "id": "FS018",
+   "standard_name": "処置の休日加算1・時間外加算1・深夜加算1",
+   "besshi5_code": "処置時間外等加算1",
+   "gated_procedure_codes": [],
+   "requirement_summary": "歯科点数表第2章第8部処置の通則6に係る施設基準。届出のある診療科で実施した所定点数1,000点以上の緊急処置についてのみ休日加算1（所定点数の100分の160）・時間外加算1（100分の80・入院外）・深夜加算1（100分の160）を算定可。未届出だと加算1区分は算定不可（加算2区分の算定は可）。令和9年6月1日以降も算定する場合は届出が必要（経過措置）。",
+   "source": "告示71号／保医発0305第8号、九州厚生局 表2、保医発0305第6号 処置通則",
+   "confidence": "high",
+   "requires_dentist_review": false
+  },
+  {
+   "id": "FS019",
+   "standard_name": "歯科技工所ベースアップ支援料",
+   "besshi5_code": "歯科技工所ベースアップ支援料",
+   "gated_procedure_codes": [],
+   "requirement_summary": "令和8年度新設。未届出だと補綴物等の製作委託に係る当該支援料が算定不可。歯科技工所の歯科技工士の賃上げ充当が要件。",
+   "source": "告示71号／保医発0305第8号、九州厚生局 表1",
+   "confidence": "medium",
+   "requires_dentist_review": false
+  },
+  {
+   "id": "FS020",
+   "standard_name": "歯科外来・在宅ベースアップ評価料（Ⅰ）",
+   "besshi5_code": "歯科外来・在宅ベースアップ評価料（Ⅰ）",
+   "gated_procedure_codes": [
+    "A000",
+    "A001"
+   ],
+   "requirement_summary": "令和8年度改正。R6届出済でも要件変更により再届出が必要（経過措置あり）。未届出だと初診・再診時等の当該評価料が算定不可。対象職員が『当該保険医療機関に勤務する職員（医師・歯科医師除く）』に拡大。",
+   "source": "告示71号／保医発0305第8号、九州厚生局 表2",
+   "confidence": "high",
+   "requires_dentist_review": false
+  },
+  {
+   "id": "FS021",
+   "standard_name": "歯科外来・在宅ベースアップ評価料（Ⅱ）",
+   "besshi5_code": "歯科外来・在宅ベースアップ評価料（Ⅱ）（1〜24）",
+   "gated_procedure_codes": [],
+   "requirement_summary": "令和8年度改正・要件変更で再届出必要。未届出だと当該評価料（Ⅱ）（24段階区分）が算定不可。評価料（Ⅰ）で対象職員の賃上げ率が1.2%に満たない場合に追加届出。",
+   "source": "告示71号／保医発0305第8号、九州厚生局 表2",
+   "confidence": "high",
+   "requires_dentist_review": false
+  },
+  {
+   "id": "FS022",
+   "standard_name": "精密触覚機能検査",
+   "besshi5_code": "精密触覚機能検査",
+   "gated_procedure_codes": [],
+   "requirement_summary": "未届出だと精密触覚機能検査が算定不可。届け出た歯科医師・機器の変更時には変更届が必要。",
+   "source": "告示71号／保医発0305第8号、九州厚生局 別添1-29の6",
+   "confidence": "medium",
+   "requires_dentist_review": false
+  },
+  {
+   "id": "FS023",
+   "standard_name": "歯科画像診断管理加算1及び2",
+   "besshi5_code": "歯科画像診断管理加算1／2",
+   "gated_procedure_codes": [],
+   "requirement_summary": "未届出だと歯科画像診断管理加算1・2が算定不可。届け出た歯科医師の変更時には変更届が必要。",
+   "source": "告示71号／保医発0305第8号、九州厚生局 施設基準一覧",
+   "confidence": "medium",
+   "requires_dentist_review": false
+  },
+  {
+   "id": "FS024",
+   "standard_name": "歯科麻酔管理料",
+   "besshi5_code": "歯科麻酔管理料",
+   "gated_procedure_codes": [],
+   "requirement_summary": "未届出だと歯科麻酔管理料が算定不可。麻酔に従事する歯科医師の配置等が要件で、医師変更時は変更届が必要。",
+   "source": "告示71号／保医発0305第8号、九州厚生局 施設基準一覧",
+   "confidence": "medium",
+   "requires_dentist_review": false
+  },
+  {
+   "id": "FS025",
+   "standard_name": "歯科矯正診断料",
+   "besshi5_code": "歯科矯正診断料",
+   "gated_procedure_codes": [],
+   "requirement_summary": "未届出だと歯科矯正診断料が算定不可（厚生労働大臣が定める疾患に係る歯科矯正等）。届け出た歯科医師・機器の変更時は変更届が必要。",
+   "source": "告示71号／保医発0305第8号、九州厚生局 施設基準一覧",
+   "confidence": "medium",
+   "requires_dentist_review": false
+  },
+  {
+   "id": "FS026",
+   "standard_name": "顎口腔機能診断料",
+   "besshi5_code": "顎口腔機能診断料",
+   "gated_procedure_codes": [],
+   "requirement_summary": "未届出だと顎口腔機能診断料（顎変形症に係る歯科矯正）が算定不可。届け出た歯科医師・機器の変更時は変更届が必要。",
+   "source": "告示71号／保医発0305第8号、九州厚生局 施設基準一覧",
    "confidence": "medium",
    "requires_dentist_review": false
   }
@@ -1258,6 +2256,220 @@
    "value": "初診時3点／再診時等1点（令和9年6月以降は100分の200）",
    " source": "告示第69号、概要【歯科】R8.3.5版",
    "confidence": "high"
+  },
+  {
+   "id": "AT018",
+   "type": "年齢",
+   "procedure_codes": [],
+   "kubun": "A000",
+   "condition": "6歳未満の乳幼児に初診を行った場合",
+   "value": "乳幼児加算 40点（注8の時間外等加算を算定する場合を除く）",
+   "source": "告示69号 A000注5／保医発0305第6号",
+   "confidence": "high",
+   "needs_code_mapping": true
+  },
+  {
+   "id": "AT019",
+   "type": "時間",
+   "procedure_codes": [],
+   "kubun": "A000",
+   "condition": "6歳以上の患者に診療時間外・休日・深夜に初診",
+   "value": "時間外加算85点／休日加算250点／深夜加算480点",
+   "source": "告示69号 A000注7",
+   "confidence": "high",
+   "needs_code_mapping": true
+  },
+  {
+   "id": "AT020",
+   "type": "時間",
+   "procedure_codes": [],
+   "kubun": "A000",
+   "condition": "6歳未満の乳幼児に診療時間外・休日・深夜に初診",
+   "value": "乳幼児時間外加算125点／乳幼児休日加算290点／乳幼児深夜加算620点",
+   "source": "告示69号 A000注8",
+   "confidence": "high",
+   "needs_code_mapping": true
+  },
+  {
+   "id": "AT021",
+   "type": "年齢",
+   "procedure_codes": [],
+   "kubun": "A001",
+   "condition": "6歳未満の乳幼児に再診を行った場合",
+   "value": "乳幼児加算 10点（注6の加算を算定する場合を除く）",
+   "source": "告示69号 A001（再診料）注3",
+   "confidence": "high",
+   "needs_code_mapping": true
+  },
+  {
+   "id": "AT022",
+   "type": "時間",
+   "procedure_codes": [],
+   "kubun": "A001",
+   "condition": "6歳以上の患者に診療時間外・休日・深夜に再診",
+   "value": "時間外加算65点／休日加算190点／深夜加算420点",
+   "source": "告示69号 A001注5",
+   "confidence": "high",
+   "needs_code_mapping": true
+  },
+  {
+   "id": "AT023",
+   "type": "時間",
+   "procedure_codes": [],
+   "kubun": "A001",
+   "condition": "6歳未満の乳幼児に診療時間外・休日・深夜に再診",
+   "value": "乳幼児時間外加算75点／乳幼児休日加算200点／乳幼児深夜加算530点",
+   "source": "告示69号 A001注6",
+   "confidence": "high",
+   "needs_code_mapping": true
+  },
+  {
+   "id": "AT024",
+   "type": "年齢",
+   "procedure_codes": [],
+   "kubun": "処置通則5",
+   "condition": "6歳未満の乳幼児又は著しく歯科診療が困難な者に処置（全身麻酔下を除く）",
+   "value": "所定点数の100分の50（乳幼児）又は100分の30（著しく困難な者）を加算。ただし抜髄(I005の1・2)・感染根管処置(I006の1・2)・口腔内装置(I017)等一部は別途規定",
+   "source": "告示69号 処置通則5／保医発0305第6号 処置通則",
+   "confidence": "high",
+   "needs_code_mapping": true
+  },
+  {
+   "id": "AT025",
+   "type": "時間",
+   "procedure_codes": [],
+   "kubun": "処置通則6",
+   "condition": "所定点数1,000点以上の緊急処置を休日・時間外・深夜に行い、かつ届出済の場合",
+   "value": "休日加算1=100分の160／時間外加算1=100分の80（入院外）／深夜加算1=100分の160。届出なしは加算2区分（休日100分の80・時間外100分の40・深夜100分の80）",
+   "source": "告示69号 処置通則6／保医発0305第6号",
+   "confidence": "high",
+   "needs_code_mapping": true
+  },
+  {
+   "id": "AT026",
+   "type": "回数",
+   "procedure_codes": [],
+   "kubun": "I030",
+   "condition": "歯科疾患管理料・歯科特定疾患療養管理料・歯科疾患在宅療養管理料等の算定患者に機械的歯面清掃",
+   "value": "原則2月に1回。歯科診療特別対応加算算定患者・根面う蝕管理料/エナメル質初期う蝕管理料の口管強加算算定患者で特に必要な者・妊婦・文書提供を受けた糖尿病患者は月1回",
+   "source": "告示69号 I030注1／保医発0305第6号",
+   "confidence": "high",
+   "needs_code_mapping": true
+  },
+  {
+   "id": "AT027",
+   "type": "通則",
+   "procedure_codes": [],
+   "kubun": "I030",
+   "condition": "同月に歯周病安定期治療・歯周病重症化予防治療・在宅等療養患者専門的口腔衛生処置・非経口摂取患者口腔粘膜処置・口腔バイオフィルム除去処置を算定",
+   "value": "機械的歯面清掃処置は当該月算定不可（ただし歯周病安定期治療等の開始日より前の同月内実施分は算定可）",
+   "source": "告示69号 I030注2／保医発0305第6号",
+   "confidence": "high",
+   "needs_code_mapping": true
+  },
+  {
+   "id": "AT028",
+   "type": "回数",
+   "procedure_codes": [],
+   "kubun": "I031",
+   "condition": "フッ化物歯面塗布処置の2回目以降",
+   "value": "原則1口腔につき3月に1回。2回目以降は前回実施月の翌月の初日から起算して2月を経過した日以降に行った場合に限り月1回算定",
+   "source": "保医発0305第6号 I031",
+   "confidence": "medium",
+   "needs_code_mapping": true,
+   "needs_verification": true
+  },
+  {
+   "id": "AT029",
+   "type": "回数",
+   "procedure_codes": [],
+   "kubun": "B000-4",
+   "condition": "1回目の歯科疾患管理料",
+   "value": "管理計画を作成・説明した場合に初診日の属する月から起算して2月以内1回に限り算定。初診月に算定する場合は所定点数の100分の80",
+   "source": "告示69号 B000-4注1（R8改正）／保医発0305第6号",
+   "confidence": "high",
+   "needs_code_mapping": true,
+   "needs_verification": true
+  },
+  {
+   "id": "AT030",
+   "type": "回数",
+   "procedure_codes": [],
+   "kubun": "B000-4",
+   "condition": "2回目以降の歯科疾患管理料",
+   "value": "1回目を算定した日の属する月の翌月以降、月1回に限り算定（1口腔単位）",
+   "source": "告示69号 B000-4注2／保医発0305第6号",
+   "confidence": "high",
+   "needs_code_mapping": true
+  },
+  {
+   "id": "AT031",
+   "type": "回数",
+   "procedure_codes": [],
+   "kubun": "B001-2-2",
+   "condition": "口腔機能実地指導料（R8新設、46点）",
+   "value": "46点。月1回に限り算定。情報提供文書は初回時に提供し、以後6月に1回以上文書提供。歯科口腔リハビリテーション料3と指導内容が重複する日は算定不可。歯科衛生実地指導料・訪問歯科衛生指導料・在宅患者訪問口腔衛生指導料との併算定は可",
+   "source": "告示69号 B001-2-2／保医発0305第6号、令和8年度改定の概要【歯科】",
+   "confidence": "high",
+   "needs_code_mapping": true
+  },
+  {
+   "id": "AT032",
+   "type": "回数",
+   "procedure_codes": [],
+   "kubun": "B001-2",
+   "condition": "歯科衛生実地指導料1",
+   "value": "歯科衛生士が直接15分以上の実地指導を行い文書提供した場合に月1回に限り算定。訪問歯科衛生指導料算定月は算定不可",
+   "source": "告示69号 B001-2注1・注5／保医発0305第6号",
+   "confidence": "high",
+   "needs_code_mapping": true
+  },
+  {
+   "id": "AT033",
+   "type": "回数",
+   "procedure_codes": [],
+   "kubun": "D012",
+   "condition": "舌圧検査（舌圧測定）",
+   "value": "3月に1回に限り算定。※R8で算定間隔が短縮（6月→3月）されたのは咀嚼能力検査(D011-2)・咬合圧検査(D011-3)であり、舌圧検査は従前から3月に1回。留意事項通知『舌圧測定を行った場合は、3月に1回に限り算定する』",
+   "source": "告示69号 D011-2・D011-3・D012／保医発0305第6号",
+   "confidence": "medium",
+   "needs_code_mapping": true,
+   "needs_verification": true,
+   "note": "改定の概要では咀嚼能力検査・咬合圧検査の6月→3月短縮が明記。舌圧検査の算定間隔はR8告示・通知本文での再確認を推奨。"
+  },
+  {
+   "id": "AT034",
+   "type": "通則",
+   "procedure_codes": [],
+   "kubun": "処置通則",
+   "condition": "処置の開始時間と『1日につき』の取扱い",
+   "value": "処置の開始時間は患者に直接施療した時。『1日につき』は午前0時～午後12時。午前0時前に開始し0時以降に終了した場合は初日のみ時間外加算等を算定し2日目は算定不可",
+   "source": "保医発0305第6号 処置通則",
+   "confidence": "high",
+   "needs_code_mapping": true
+  },
+  {
+   "id": "AT035",
+   "type": "部位",
+   "procedure_codes": [],
+   "kubun": "処置通則",
+   "condition": "対称器官に係る処置",
+   "value": "特に規定する場合を除き、所定点数は両側の器官の処置料に係る点数とする",
+   "source": "保医発0305第6号 処置通則",
+   "confidence": "high",
+   "needs_code_mapping": true
+  },
+  {
+   "id": "AT036",
+   "type": "回数",
+   "procedure_codes": [],
+   "kubun": "B000-4-2",
+   "condition": "小児口腔機能管理料",
+   "value": "口腔機能発達不全症の小児に管理計画に基づき口腔機能の管理を行った場合に月1回に限り算定（R8で評価項目3項目以上=管理料1、2項目=管理料2に区分）",
+   "source": "告示69号 B000-4-2／保医発0305第6号",
+   "confidence": "medium",
+   "needs_code_mapping": true,
+   "needs_verification": true
   }
  ],
  "computer_check": [
@@ -1287,6 +2499,105 @@
    "logic_summary": "院内感染防止対策に係る施設基準（歯初診）未届出で歯科初診料/再診料の所定点数を算定している場合。形式的・客観的判定が可能。",
    "error_or_followup": "error",
    "source_url": "https://www.mhlw.go.jp/seisakunitsuite/bunya/kenkou_iryou/iryouhoken/dl/shidou_kansa_17.pdf"
+  },
+  {
+   "id": "CC004",
+   "check_name": "歯科疾患管理料（病名×検査なし）",
+   "target_codes": [
+    "B000-4"
+   ],
+   "logic_summary": "初診料を算定した月に「P」病名及び「G」病名で画像診断及び歯周病検査の算定がなく、歯科疾患管理料が算定された場合に電子付せん（事例コード48SJ990455220）。",
+   "error_or_followup": "followup",
+   "source_url": "https://www.ssk.or.jp/shinryohoshu/saikaisyou_torikumi/kashikarepo/kashikarepo_cc.files/20251031_cc_shika.pdf"
+  },
+  {
+   "id": "CC005",
+   "check_name": "機械的歯面清掃処置（管理料算定なし）",
+   "target_codes": [
+    "I030"
+   ],
+   "logic_summary": "初診料の算定日以降に歯科疾患管理料・歯科特定疾患療養管理料・歯科疾患在宅療養管理料のいずれの算定もなく機械的歯面清掃処置が算定された場合に電子付せん（事例コード48SJ990455214）。",
+   "error_or_followup": "followup",
+   "source_url": "https://www.ssk.or.jp/shinryohoshu/saikaisyou_torikumi/kashikarepo/kashikarepo_cc.files/20251031_cc_shika.pdf"
+  },
+  {
+   "id": "CC006",
+   "check_name": "歯周基本治療（スケーリング／歯周病検査なし）",
+   "target_codes": [
+    "I011"
+   ],
+   "logic_summary": "初診料算定日から当日までに歯周病検査の算定がなく、歯科訪問診療料/歯科診療特別対応加算等の患者以外で歯周基本治療（スケーリング）が算定された場合に電子付せん（事例コード48SJ309033203）。",
+   "error_or_followup": "followup",
+   "source_url": "https://www.ssk.or.jp/shinryohoshu/saikaisyou_torikumi/kashikarepo/kashikarepo_cc.files/20251031_cc_shika.pdf"
+  },
+  {
+   "id": "CC007",
+   "check_name": "歯周病検査（前回から1月以内）",
+   "target_codes": [
+    "D002"
+   ],
+   "logic_summary": "前回の歯周病検査から1月以内に歯周病検査が所定点数で算定された場合に電子付せん（算定間隔ルール、事例コード48SJ309010101）。",
+   "error_or_followup": "followup",
+   "source_url": "https://www.ssk.or.jp/shinryohoshu/saikaisyou_torikumi/kashikarepo/kashikarepo_cc.files/20251031_cc_shika.pdf"
+  },
+  {
+   "id": "CC008",
+   "check_name": "う蝕処置（病名部位歯数超過）",
+   "target_codes": [
+    "I000"
+   ],
+   "logic_summary": "同日にう蝕処置が傷病名部位の歯数を超えて算定された場合に電子付せん（事例コード48SJ990759801）。",
+   "error_or_followup": "followup",
+   "source_url": "https://www.ssk.or.jp/shinryohoshu/saikaisyou_torikumi/kashikarepo/kashikarepo_cc.files/20251031_cc_shika.pdf"
+  },
+  {
+   "id": "CC009",
+   "check_name": "根管充填（病名部位歯数超過）",
+   "target_codes": [
+    "I008"
+   ],
+   "logic_summary": "初診料の算定日以降に根管充填が傷病名部位の歯数を超えて算定された場合に電子付せん（事例コード48SJ990782402）。同種：初期う蝕早期充填処置(48SJ990929101)・根管貼薬処置(48SJ990760003)・歯周基本治療SRP(48SJ990778808)の歯数超過チェックあり。",
+   "error_or_followup": "followup",
+   "source_url": "https://www.ssk.or.jp/shinryohoshu/saikaisyou_torikumi/kashikarepo/kashikarepo_cc.files/20251031_cc_shika.pdf"
+  },
+  {
+   "id": "CC010",
+   "check_name": "浸潤麻酔（手術と同日併算定）",
+   "target_codes": [
+    "K001"
+   ],
+   "logic_summary": "同日に手術と浸潤麻酔が算定された場合に電子付せん（手術の所定点数に麻酔手技料が含まれるため別途算定不可、事例コード48SJ100005501）。",
+   "error_or_followup": "followup",
+   "source_url": "https://www.ssk.or.jp/shinryohoshu/saikaisyou_torikumi/kashikarepo/kashikarepo_cc.files/20251031_cc_shika.pdf"
+  },
+  {
+   "id": "CC011",
+   "check_name": "浸潤麻酔（歯冠形成等と同日併算定）",
+   "target_codes": [
+    "K001"
+   ],
+   "logic_summary": "同日に歯冠形成・う蝕歯即時充填形成・う蝕歯インレー修復形成と浸潤麻酔が算定された場合に電子付せん（事例コード48SJ309011004）。",
+   "error_or_followup": "followup",
+   "source_url": "https://www.ssk.or.jp/shinryohoshu/saikaisyou_torikumi/kashikarepo/kashikarepo_cc.files/20251031_cc_shika.pdf"
+  },
+  {
+   "id": "CC012",
+   "check_name": "仮床試適（抜歯手術と同日）",
+   "target_codes": [
+    "M007"
+   ],
+   "logic_summary": "抜歯手術と同日に有床義歯の算定がある、又は即時義歯のコメントがある場合に仮床試適が算定されたとき電子付せん（事例コード48SJ990803401）。",
+   "error_or_followup": "followup",
+   "source_url": "https://www.ssk.or.jp/shinryohoshu/saikaisyou_torikumi/kashikarepo/kashikarepo_cc.files/20251031_cc_shika.pdf"
+  },
+  {
+   "id": "CC013",
+   "check_name": "歯冠補綴時色調採得検査（同日2回以上）",
+   "target_codes": [],
+   "logic_summary": "同日に歯冠補綴時色調採得検査が2回以上算定された場合に電子付せん（事例コード48SJ990863601）。",
+   "error_or_followup": "followup",
+   "source_url": "https://www.ssk.or.jp/shinryohoshu/saikaisyou_torikumi/kashikarepo/kashikarepo_cc.files/20251031_cc_shika.pdf",
+   "needs_verification": true
   }
  ]
 }
