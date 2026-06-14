@@ -1901,27 +1901,23 @@
    "id": "FS011",
    "standard_name": "電子的歯科診療情報連携体制整備加算1",
    "besshi5_code": "電子的歯科診療情報連携体制整備加算1",
-   "gated_procedure_codes": [
-    "A000",
-    "A001"
-   ],
+   "gated_procedure_codes": [],
    "requirement_summary": "令和8年度新設。未届出だと初診料注15・再診料注12の当該加算（初診時9点・再診時2点）が算定不可。マイナ保険証利用率30%以上（原則として適用時期の3か月前のレセプト件数ベース利用率で判定）、電子処方箋及び電子カルテ情報共有サービスへの対応、明細書無償交付のウェブ掲示等が要件。旧『医療DX推進体制整備加算』『医療情報取得加算』は廃止され自動移行しないため再届出が必要（届出期間：令和8年5月7日〜6月1日必着）。",
    "source": "告示70号／保医発0305第7号、九州厚生局 表1（令和8年4月14日版）、疑義解釈その1 問3",
    "confidence": "high",
-   "requires_dentist_review": false
+   "requires_dentist_review": false,
+   "gated_note": "任意加算/別建て項目のため基本料コードでのゲートは無効化（誤発火防止）。特定加算コード特定後に再設定"
   },
   {
    "id": "FS012",
    "standard_name": "電子的歯科診療情報連携体制整備加算2",
    "besshi5_code": "電子的歯科診療情報連携体制整備加算2",
-   "gated_procedure_codes": [
-    "A000",
-    "A001"
-   ],
+   "gated_procedure_codes": [],
    "requirement_summary": "令和8年度新設。未届出だと初診料注15の当該加算（初診時4点）が算定不可（歯科は加算1・2の2区分、再診料は一律2点）。電子処方箋・電子カルテ情報共有サービスへの対応が未達の場合の下位区分。マイナ保険証利用率30%以上等の共通要件は加算1と同様。旧加算からの自動移行なしで再届出必須。",
    "source": "告示70号／保医発0305第7号、九州厚生局 表1、疑義解釈その1 問3",
    "confidence": "high",
-   "requires_dentist_review": false
+   "requires_dentist_review": false,
+   "gated_note": "任意加算/別建て項目のため基本料コードでのゲートは無効化（誤発火防止）。特定加算コード特定後に再設定"
   },
   {
    "id": "FS013",
@@ -1999,14 +1995,12 @@
    "id": "FS020",
    "standard_name": "歯科外来・在宅ベースアップ評価料（Ⅰ）",
    "besshi5_code": "歯科外来・在宅ベースアップ評価料（Ⅰ）",
-   "gated_procedure_codes": [
-    "A000",
-    "A001"
-   ],
+   "gated_procedure_codes": [],
    "requirement_summary": "令和8年度改正。R6届出済でも要件変更により再届出が必要（経過措置あり）。未届出だと初診・再診時等の当該評価料が算定不可。対象職員が『当該保険医療機関に勤務する職員（医師・歯科医師除く）』に拡大。",
    "source": "告示71号／保医発0305第8号、九州厚生局 表2",
    "confidence": "high",
-   "requires_dentist_review": false
+   "requires_dentist_review": false,
+   "gated_note": "任意加算/別建て項目のため基本料コードでのゲートは無効化（誤発火防止）。特定加算コード特定後に再設定"
   },
   {
    "id": "FS021",

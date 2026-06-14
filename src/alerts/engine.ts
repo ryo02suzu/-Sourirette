@@ -76,105 +76,90 @@ export function evaluateAlerts(input: AlertInput, cfg: AlertConfig): Alert[] {
     return [...out];
   };
 
-  // 1) 病名↔処置の適応 → warning
-  //   - 不適応（forbidden）はブラックリストなので事例ごとに独立して発火する。
-  //   - 適応（required）は「この処置に妥当な病名の一例」。同じ区分に複数の適応事例があり、
-  //     患者はそのどれか1つを満たせば足りる。事例ごとに「対応病名なし」を出すと
-  //     同じ処置に重複警告が乱発するため、処置コード単位で必要病名を合算し1件に集約する。
-  const reqByCode = new Map<string, { codes: Set<string>; labels: Set<string>; name: string; sources: Set<string> }>();
-  const forbiddenSeen = new Set<string>(); // 同一(処置×病名)の不適応は事例が複数あっても1件に集約
+  // 1) 病名↔処置の「不適応」のみ warning（高精度な負の信号だけを出す）。
+  //   審査事例の「適応」は “その病名なら認める一例” にすぎず、“その病名が必須” を意味しない
+  //   （例: 写真診断が上顎洞炎で認められる ≠ 写真診断には上顎洞炎が要る）。
+  //   よって「対応病名なし（required欠落）」は誤検知の温床なので発火させない。不適応のみ扱う。
+  //   同一(処置×病名)の不適応は、事例が複数あっても1件に集約する。
+  const forbiddenSeen = new Set<string>();
   for (const dp of rulesDb.diagnosis_procedure) {
     const hits = matchedCodes(dp.procedure_kubun, dp.procedure_codes);
     if (hits.length === 0) continue;
     const forbidden = (dp.forbidden_diseases ?? []).flatMap((t) => resolveDiseaseCodes(t, resolver));
     const forbiddenHit = forbidden.find((c) => diseaseSet.has(c));
-    const required = (dp.required_diseases ?? []).flatMap((t) => resolveDiseaseCodes(t, resolver));
-    for (const code of hits) {
-      if (forbiddenHit !== undefined && !forbiddenSeen.has(`${code}#${forbiddenHit}`)) {
-        forbiddenSeen.add(`${code}#${forbiddenHit}`);
-        push({
-          level: "warning",
-          category: "diagnosis_procedure",
-          ruleId: dp.id,
-          title: "病名↔処置の不適応（審査裁量）",
-          message: `${dp.procedure_name ?? code}: ${dp.note ?? "対象病名に対しては認められない傾向"}`,
-          source: dp.source ?? "審査情報提供事例",
-          procedureCode: code,
-          diseaseCode: forbiddenHit,
-          contextKey: makeContextKey(dp.id, forbiddenHit, code),
-          requiresDentistReview: true,
-        });
-      }
-      if (required.length > 0) {
-        let agg = reqByCode.get(code);
-        if (agg === undefined) reqByCode.set(code, (agg = { codes: new Set(), labels: new Set(), name: dp.procedure_name ?? code, sources: new Set() }));
-        for (const c of required) agg.codes.add(c);
-        for (const t of dp.required_diseases ?? []) agg.labels.add(t);
-        if (dp.source !== undefined) agg.sources.add(dp.source);
-      }
-    }
-  }
-  // 集約後: 必要病名の合算にどれも一致しなければ、処置コードあたり1件だけ「対応病名なし」
-  for (const [code, agg] of reqByCode) {
-    if ([...agg.codes].some((c) => diseaseSet.has(c))) continue;
-    const ruleId = `REQ:${code}`;
+    if (forbiddenHit === undefined) continue;
+    const code = hits[0]!; // 同じ区分で複数コードが当たっても病名×処置の指摘は1件でよい
+    if (forbiddenSeen.has(`${code}#${forbiddenHit}`)) continue;
+    forbiddenSeen.add(`${code}#${forbiddenHit}`);
     push({
       level: "warning",
       category: "diagnosis_procedure",
-      ruleId,
-      title: "対応病名なし（審査裁量）",
-      message: `${agg.name}: 通常この処置に必要な傷病名（${[...agg.labels].join("／")}）が見当たりません`,
-      source: [...agg.sources].join("・") || "審査情報提供事例",
+      ruleId: dp.id,
+      title: "病名↔処置の不適応（審査裁量）",
+      message: `${dp.procedure_name ?? code}: ${dp.note ?? "対象病名に対しては認められない傾向"}`,
+      source: dp.source ?? "審査情報提供事例",
       procedureCode: code,
-      contextKey: makeContextKey(ruleId, undefined, code),
+      diseaseCode: forbiddenHit,
+      contextKey: makeContextKey(dp.id, forbiddenHit, code),
       requiresDentistReview: true,
     });
   }
 
-  // 2) 施設基準 → error（届出状況が分かるときのみ）
+  // 2) 施設基準 → error（届出状況が分かるときのみ）。施設基準あたり1件（処置ごとに乱発しない）
   if (input.notifiedStandards !== undefined) {
     const notified = new Set(input.notifiedStandards);
     for (const fs of rulesDb.facility_standard ?? []) {
       const f = fs as { id: string; besshi5_code?: string; gated_procedure_codes?: string[]; requirement_summary?: string; source?: string };
       if (f.besshi5_code === undefined || notified.has(f.besshi5_code)) continue;
       const hits = matchedCodes((f.gated_procedure_codes ?? []).join("/"), f.gated_procedure_codes);
-      for (const code of hits) {
-        push({
-          level: "error",
-          category: "facility_standard",
-          ruleId: f.id,
-          title: "施設基準 未届",
-          message: `${f.besshi5_code} 未届で算定（${f.requirement_summary?.slice(0, 40) ?? ""}…）`,
-          source: f.source ?? "告示・通知",
-          procedureCode: code,
-          contextKey: makeContextKey(f.id, undefined, code),
-          requiresDentistReview: false,
-        });
-      }
-    }
-  }
-
-  // 3) 年齢/時間/部位 → proposal（取りこぼし提案）
-  for (const at of rulesDb.age_time_site ?? []) {
-    const kubunField = at.kubun ?? "";
-    const hits = matchedCodes(kubunField, at.procedure_codes);
-    if (hits.length === 0) continue;
-    if (at.type === "その他") continue; // 点数の参照情報（R8点数等）はアラートにしない
-    if (at.condition !== undefined && ageConditionExcluded(at.condition, input.patientAge)) continue;
-    for (const code of hits) {
+      if (hits.length === 0) continue;
+      const code = hits[0]!;
       push({
-        level: "proposal",
-        category: "age_time_site",
-        ruleId: at.id,
-        title: "取りこぼし提案",
-        message: `${at.condition ?? ""} → ${at.value ?? ""}（該当すれば算定可）`,
-        source: at.source ?? "告示・通知",
+        level: "error",
+        category: "facility_standard",
+        ruleId: f.id,
+        title: "施設基準 未届",
+        message: `${f.besshi5_code} 未届で算定（${f.requirement_summary?.slice(0, 40) ?? ""}…）`,
+        source: f.source ?? "告示・通知",
         procedureCode: code,
-        contextKey: makeContextKey(at.id, undefined, code),
+        contextKey: makeContextKey(f.id, undefined, code),
         requiresDentistReview: false,
       });
     }
   }
 
-  return alerts;
+  // 3) 年齢/時間/部位 → proposal（取りこぼし提案）。提案あたり1件。
+  //   初診料/再診料の年齢・時間外加算は自動算定（rules/additions）で既に付与するため、
+  //   提案として二重に出さない（auto-add の対象区分 A000/A001/A002 × 年齢/時間 は除外）。
+  const AUTO_ADDED_KUBUN = new Set(["A000", "A001", "A002"]);
+  for (const at of rulesDb.age_time_site ?? []) {
+    const kubunField = at.kubun ?? "";
+    const hits = matchedCodes(kubunField, at.procedure_codes);
+    if (hits.length === 0) continue;
+    if (at.type === "その他") continue; // 点数の参照情報（R8点数等）はアラートにしない
+    const baseKubun = extractKubun(kubunField);
+    if (baseKubun !== undefined && AUTO_ADDED_KUBUN.has(baseKubun)) continue; // 初診/再診の年齢・時間外加算は自動算定が owns（提案で二重に出さない）
+    if (at.condition !== undefined && ageConditionExcluded(at.condition, input.patientAge)) continue;
+    const code = hits[0]!;
+    push({
+      level: "proposal",
+      category: "age_time_site",
+      ruleId: at.id,
+      title: "取りこぼし提案",
+      message: `${at.condition ?? ""} → ${at.value ?? ""}（該当すれば算定可）`,
+      source: at.source ?? "告示・通知",
+      procedureCode: code,
+      contextKey: makeContextKey(at.id, undefined, code),
+      requiresDentistReview: false,
+    });
+  }
+
+  // 最終ガード: (ruleId × 病名) が同一のアラートは1件に集約（区分内の複数コードでの重複を消す）
+  const seen = new Set<string>();
+  return alerts.filter((a) => {
+    const key = `${a.ruleId}#${a.diseaseCode ?? ""}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
