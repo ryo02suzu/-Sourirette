@@ -7,7 +7,9 @@
  */
 import type { Diagnosis, Patient, Visit } from "../domain/types.js";
 import type { ClaimLine, CalculationIssue } from "../billing/engine.js";
-import { commentCandidates, isValidDisease, missedChargeHints, type OfficialEngine } from "../billing/official-engine.js";
+import { commentCandidates, computeAlerts, isValidDisease, missedChargeHints, type OfficialEngine } from "../billing/official-engine.js";
+import { ageAt } from "../domain/types.js";
+import type { Alert } from "../alerts/types.js";
 import { buildAccounting, type AccountingResult } from "../billing/accounting.js";
 import { calculateCopayment, type CopaymentResult, type IncomeOver70, type IncomeUnder70 } from "../billing/copayment.js";
 import { monthlyClaimToReceipt, type VisitClaim } from "./from-claim.js";
@@ -42,6 +44,10 @@ export interface ProcessReceiptInput extends ReceiptCoreInput {
   facility: UkeFileInput["facility"];
   /** 窓口会計（負担割合・所得区分）を計算する場合に指定 */
   copay?: { copayRatio: number; category: IncomeUnder70 | IncomeOver70; isMultiple?: boolean; applyCapAtWindow?: boolean };
+  /** 届出済みの施設基準コード（besshi5_code）。施設基準アラート用 */
+  notifiedStandards?: string[];
+  /** 既読（承認済み）アラートの contextKey。一致するアラートは抑制 */
+  acknowledgedAlerts?: string[];
 }
 
 /** 入力の必須項目を検証し、欠落時は分かりやすいエラーにする */
@@ -123,6 +129,8 @@ export interface ProcessReceiptResult {
   commentCandidates: { procedureCode: string; commentCode: string; displayText: string; recordingNote: string }[];
   /** 算定もれ提示: 該当すれば算定できる加算/通則のヒント（取り漏れ防止） */
   missedChargeHints: { procedureCode: string; type: string; condition: string; value: string; source: string }[];
+  /** 算定支援アラート（error/warning/proposal。ブロックしない・上書き可・既読学習対応） */
+  alerts: Alert[];
   /** 会計: 領収証の費用区分別集計＋明細書の個別明細 */
   accounting: AccountingResult;
   /** 窓口会計（input.copay 指定時のみ） */
@@ -151,6 +159,19 @@ export function processReceipt(loaded: OfficialEngine, input: ProcessReceiptInpu
   }
 
   const allCodes = [...new Set(input.visits.flatMap((v) => v.procedureCodes))];
+
+  // 算定支援アラート（患者年齢・届出・既読を反映）
+  const patientAge = ageAt(input.patient.birthDate, input.visits[0]!.date);
+  const alerts = computeAlerts(
+    loaded,
+    {
+      procedureCodes: allCodes,
+      diseaseCodes: input.diagnoses.map((d) => d.diseaseCode),
+      patientAge,
+      ...(input.notifiedStandards !== undefined ? { notifiedStandards: input.notifiedStandards } : {}),
+    },
+    input.acknowledgedAlerts !== undefined ? new Set(input.acknowledgedAlerts) : undefined,
+  );
   const candidates = allCodes.flatMap((code) =>
     commentCandidates(loaded, code).map((e) => ({ procedureCode: code, commentCode: e.commentCode, displayText: e.displayText, recordingNote: e.recordingNote })),
   );
@@ -167,6 +188,7 @@ export function processReceipt(loaded: OfficialEngine, input: ProcessReceiptInpu
     algorithmIssues,
     commentCandidates: candidates,
     missedChargeHints: missedChargeHints(loaded, allCodes),
+    alerts,
     accounting,
     ...(copayment !== undefined ? { copayment } : {}),
   };

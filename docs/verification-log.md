@@ -521,3 +521,16 @@
   FS001(歯初診未届error/届出済み非発火/未指定で無チェック)・AT012(I000算定単位proposal/初診非発火)・
   年齢条件(乳幼児加算6歳以上非発火/未満発火)・既読学習(承認で抑制)・非ブロック
 - テスト 140→150件 全通過
+
+## 追記42（2026-06-14 / 算定支援アラート step2-3: 既読ストア＋API接続＋一覧UI）
+
+- step2 `src/alerts/store.ts`: AcknowledgmentStore＋InMemory実装（承認/取消/既読判定/永続化）。
+  DB(acknowledged_patternテーブル)に差し替え可能なスキーマ提示。テスト4件
+- step3 API接続: official-engine に rulesDb＋computeAlerts、processReceipt結果に alerts を追加
+  （患者年齢・届出・既読を反映）。ProcessReceiptInput に notifiedStandards/acknowledgedAlerts
+- step3 UI `app/src/components/AlertPanel.tsx`: レベル別色分け（🔴error/🟡warning/💡proposal）・
+  根拠source併記・各行「承認(既読化→localStorage→次回抑制)」「無視(今回のみ)」・件数サマリ・
+  レセプト単位で集約（1件ずつポップアップしない）。Receipts画面に組込
+- E2E確認: デモ（抜髄+Per・届出済み医院・成人）→ 提出可(ブロックなし)・アラート3件
+  （DP001不適応warning×2＋AT002取りこぼしproposal）。届出済みなので施設基準errorは非発火
+- テスト 150→154件、アプリbuild通過。アラート機能の3ステップ完了

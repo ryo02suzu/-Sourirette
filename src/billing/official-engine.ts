@@ -16,7 +16,9 @@ import { decodeSjis, parseDentalProcedureMaster, buildMasterFromRows } from "./m
 import type { InMemoryMaster } from "./master.js";
 import { createDataDrivenRules } from "./rule-tables.js";
 import { createSiteDiagnosisRule } from "./rules/site-diagnosis.js";
-import { buildChargeHintsByKubun, buildDiagnosisRequirements, parseRulesDb, type AgeTimeSiteEntry } from "./rules-db-loader.js";
+import { buildChargeHintsByKubun, buildDiagnosisRequirements, parseRulesDb, type AgeTimeSiteEntry, type RulesDb } from "./rules-db-loader.js";
+import { evaluateAlerts } from "../alerts/engine.js";
+import type { Alert, AlertInput } from "../alerts/types.js";
 import {
   createInclusionGroupRule,
   haihanToMutualExclusions,
@@ -75,6 +77,8 @@ export interface OfficialEngine {
   diseaseIndex: Map<string, DiseaseRow>;
   /** 区分 → 算定可能な加算/通則ヒント（算定もれ提示用） */
   chargeHintsByKubun: Map<string, AgeTimeSiteEntry[]>;
+  /** 算定ルール調査DB（アラートエンジン用。未指定時は undefined） */
+  rulesDb?: RulesDb;
   counts: { frequencyLimits: number; mutualExclusions: number; inclusionGroups: number; betsu1Entries: number; diseases: number; diagnosisRules: number };
 }
 
@@ -154,6 +158,7 @@ export function loadOfficialEngine(src: OfficialDataSources, validFrom = "2024-0
     betsu1Index,
     diseaseIndex,
     chargeHintsByKubun,
+    ...(rulesDb !== undefined ? { rulesDb } : {}),
     counts: { frequencyLimits: frequencyLimits.length, mutualExclusions: mutualExclusions.length, inclusionGroups, betsu1Entries: betsu1Entries.length, diseases: diseaseIndex.size, diagnosisRules: diagnosisRequirements.length },
   };
 }
@@ -167,6 +172,12 @@ export function commentCandidates(loaded: OfficialEngine, procedureCode: string)
 export function isValidDisease(loaded: OfficialEngine, code: string): boolean {
   if (loaded.diseaseIndex.size === 0) return true;
   return isKnownDiseaseCode(code, loaded.diseaseIndex);
+}
+
+/** 算定支援アラートを評価する（公式エンジンの調査DB＋区分対応を使う）。調査DB未指定なら空 */
+export function computeAlerts(loaded: OfficialEngine, input: AlertInput, acknowledged?: Set<string>): Alert[] {
+  if (loaded.rulesDb === undefined) return [];
+  return evaluateAlerts(input, { rulesDb: loaded.rulesDb, codeToKubun: loaded.codeToKubun, ...(acknowledged !== undefined ? { acknowledged } : {}) });
 }
 
 /**

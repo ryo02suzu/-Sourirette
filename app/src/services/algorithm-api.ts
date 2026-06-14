@@ -33,6 +33,19 @@ export interface ServerCopayment {
   highCostBenefit: number;
 }
 
+export interface ServerAlert {
+  level: "error" | "warning" | "proposal";
+  category: string;
+  ruleId: string;
+  title: string;
+  message: string;
+  source: string;
+  procedureCode?: string;
+  diseaseCode?: string;
+  contextKey: string;
+  requiresDentistReview: boolean;
+}
+
 export interface ServerReceiptResult {
   recordsText: string;
   ukeBase64: string;
@@ -44,8 +57,25 @@ export interface ServerReceiptResult {
   submittable: boolean;
   algorithmIssues: { severity: "error" | "warning"; ruleId: string; message: string; procedureCode?: string }[];
   commentCandidates: ServerCommentCandidate[];
+  alerts: ServerAlert[];
   accounting: ServerAccounting;
   copayment?: ServerCopayment;
+}
+
+/** 既読（承認済み）アラートの contextKey を localStorage に保存する（既読学習・総量制御） */
+const ACK_KEY = "sourirette.acknowledgedAlerts";
+export function loadAcknowledgedAlerts(): string[] {
+  try {
+    const v = JSON.parse(localStorage.getItem(ACK_KEY) ?? "[]");
+    return Array.isArray(v) ? v : [];
+  } catch {
+    return [];
+  }
+}
+export function acknowledgeAlert(contextKey: string): void {
+  const set = new Set(loadAcknowledgedAlerts());
+  set.add(contextKey);
+  localStorage.setItem(ACK_KEY, JSON.stringify([...set]));
 }
 
 /** サーバ稼働確認（取込件数を返す） */
@@ -96,9 +126,12 @@ export const DEMO_ENCOUNTER = {
   chartNo: "DEMO-0001",
   scheme: { kind: "medical", beneficiary: "family" },
   insurer: { insurerNo: "01130012", symbol: "11010203", number: "123" },
+  // 届出済み施設基準（この医院は歯初診・外安全・外感染を届出）→ 施設基準errorは出ない
+  notifiedStandards: ["歯初診", "外安全", "外感染"],
   visits: [
-    { date: "2026-06-05", visitType: "first", procedureCodes: ["301000110", "305000110", "305004010"] },
+    { date: "2026-06-05", visitType: "first", procedureCodes: ["301000110", "305000110", "305004010", "309002110"] },
     { date: "2026-06-19", visitType: "followup", procedureCodes: [] },
   ],
-  diagnoses: [{ diseaseCode: "8840351", teeth: ["16"], onsetDate: "2026-06-05" }],
+  // 抜髄(309002110)に対しPer病名→DP001の不適応warningを意図的に発火させるデモ
+  diagnoses: [{ diseaseCode: "8832354", teeth: ["16"], onsetDate: "2026-06-05" }],
 } as const;

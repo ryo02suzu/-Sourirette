@@ -8,9 +8,12 @@ import {
   DEMO_ENCOUNTER,
   downloadUkeBase64,
   generateReceipt,
+  loadAcknowledgedAlerts,
+  type ServerAlert,
   type ServerCommentCandidate,
   type ServerValidationIssue,
 } from "../services/algorithm-api.js";
+import { AlertPanel } from "../components/AlertPanel.js";
 
 const AI_TEKIYO_DRAFT =
   "義歯不適合により疼痛著明、咀嚼困難を認めたため同月2回目の調整を実施。" +
@@ -28,6 +31,7 @@ interface DisplayUke {
   submittable: boolean;
   commentCandidates?: ServerCommentCandidate[];
   algorithmIssues?: { severity: "error" | "warning"; message: string; procedureCode?: string }[];
+  alerts?: ServerAlert[];
 }
 
 export function ReceiptsScreen({ onOpenChart }: { onOpenChart(): void }) {
@@ -53,7 +57,8 @@ export function ReceiptsScreen({ onOpenChart }: { onOpenChart(): void }) {
         toast("算定サーバ未起動。`npm run serve` で起動すると実点数で算定します。今回はデモ点数で出力します", "info");
         return handleDemoExport();
       }
-      const r = await generateReceipt(DEMO_ENCOUNTER);
+      // 既読（承認済み）アラートを渡して総量制御（次回から抑制）
+      const r = await generateReceipt({ ...DEMO_ENCOUNTER, acknowledgedAlerts: loadAcknowledgedAlerts() });
       setUke({
         source: "算定サーバ（公式マスタの実点数）",
         text: r.recordsText,
@@ -65,6 +70,7 @@ export function ReceiptsScreen({ onOpenChart }: { onOpenChart(): void }) {
         submittable: r.submittable,
         commentCandidates: r.commentCandidates,
         algorithmIssues: r.algorithmIssues,
+        alerts: r.alerts,
       });
       downloadUkeBase64(r.ukeBase64);
       toast(
@@ -140,6 +146,7 @@ export function ReceiptsScreen({ onOpenChart }: { onOpenChart(): void }) {
               生成された RECEIPTS.UKE（{uke.recordCount}レコード / {uke.byteLength}バイト・Shift_JIS・末尾EOF付き）
               <span className="chip" style={{ marginLeft: 8 }}>{uke.source}</span>
             </div>
+            {uke.alerts && <AlertPanel alerts={uke.alerts} />}
             <div className="tiny muted" style={{ marginBottom: 6 }}>
               算定エンジンが確定した点数（合計 {uke.totalPoints} 点・診療実日数 {uke.visitDays} 日）を、月内の複数受診を
               1枚に集約し（同一診療行為は算定日情報にマージ）、記録条件仕様（歯科用）令和8年6月版の
