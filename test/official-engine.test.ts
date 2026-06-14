@@ -68,6 +68,40 @@ test("工場エンジン: 包括が発火（抜髄＋根管貼薬）", () => {
   assert.ok(r.issues.some((i) => i.severity === "error" && i.procedureCode === "309003310"));
 });
 
+// 包括マッピングの健全性（既知の正しい関係をロック。電子点数表パースの系統ズレを検知する）
+// excludesFromBilling で行除外する以上、誤マッピングは「沈黙の算定もれ」になるため重点検証。
+test("包括(実データ): 抜髄に浸潤麻酔が包括され、請求行・合計から除外される", () => {
+  const r = loaded.engine.calculate(ctx(["309002110", "311000210"])); // 抜髄234 + 浸潤麻酔30
+  assert.equal(r.totalPoints, 234, "浸潤麻酔が合計に残っている（包括除外されていない）");
+  assert.ok(!r.lines.some((l) => l.procedureCode === "311000210"), "浸潤麻酔が請求行に残っている");
+  assert.ok(r.issues.some((i) => i.procedureCode === "311000210" && i.excludesFromBilling));
+});
+
+test("包括(実データ): 感染根管処置に根管貼薬が包括される", () => {
+  const r = loaded.engine.calculate(ctx(["309003010", "309003310"])); // 感染根管160 + 根管貼薬
+  assert.equal(r.totalPoints, 160);
+  assert.ok(!r.lines.some((l) => l.procedureCode === "309003310"));
+});
+
+test("包括(実データ): 生活歯髄切断に歯髄保護処置が包括される", () => {
+  const r = loaded.engine.calculate(ctx(["309001810", "309001010"])); // 生活歯髄切断233 + 歯髄保護200
+  assert.equal(r.totalPoints, 233);
+  assert.ok(!r.lines.some((l) => l.procedureCode === "309001010"));
+});
+
+test("包括の誤除外なし: 抜髄と同日の初診料は包括されず請求に残る（取りこぼし防止）", () => {
+  const r = loaded.engine.calculate(ctx(["301000110", "309002110"])); // 初診料272 + 抜髄234
+  assert.equal(r.totalPoints, 506);
+  assert.ok(r.lines.some((l) => l.procedureCode === "301000110"));
+  assert.ok(r.lines.some((l) => l.procedureCode === "309002110"));
+});
+
+test("包括は同日のみ: 親が居なければ子は請求に残る（根管貼薬を単独で算定）", () => {
+  const r = loaded.engine.calculate(ctx(["309003310"])); // 抜髄なし
+  assert.ok(r.lines.some((l) => l.procedureCode === "309003310"), "親不在なのに包括除外された");
+  assert.ok(!r.issues.some((i) => i.excludesFromBilling));
+});
+
 test("工場エンジン: 回数制限が発火（初診料を月2回）", () => {
   const r = loaded.engine.calculate(ctx(["301000110"], { "301000110": 1 }));
   assert.ok(r.issues.some((i) => i.severity === "error" && i.procedureCode === "301000110"));
