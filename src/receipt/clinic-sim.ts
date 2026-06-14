@@ -13,7 +13,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { join, dirname } from "node:path";
 import type { CalculationContext } from "../billing/engine.js";
-import { commentCandidates, loadOfficialEngine, type OfficialDataSources, type OfficialEngine } from "../billing/official-engine.js";
+import { commentCandidates, isValidDisease, loadOfficialEngine, type OfficialDataSources, type OfficialEngine } from "../billing/official-engine.js";
 import type { Diagnosis, Patient, Visit } from "../domain/types.js";
 import { monthlyClaimToReceipt, type VisitClaim } from "./from-claim.js";
 import { assembleUkeFile } from "./build.js";
@@ -42,6 +42,7 @@ function build() {
     hojoMaster: buf("data/tensuhyo/01_hojo_master.csv"),
     hokatsu: buf("data/tensuhyo/02_hokatsu.csv"),
     betsu1Csv: readFileSync(join(ROOT, "data/masters/betsu1_shika_20260601.csv"), "utf-8"),
+    diseaseMaster: buf("data/masters/hb_20260601.txt"),
     asOf: ASOF,
   };
   return loadOfficialEngine(sources);
@@ -95,7 +96,7 @@ function run(): void {
     const records = assembleUkeFile({ facility: { payer: "1", prefecture: "13", facilityCode: "1234567", facilityName: "シミュレーション歯科", billingMonth: "202607" }, receipts: [receipt] });
     const points = visitClaims.reduce((s, vc) => s + vc.result.totalPoints, 0);
     totalPoints += points;
-    const selfcheck = isSubmittable(validateUkeRecords(records)) ? "自己点検OK" : "自己点検NG";
+    const selfcheck = isSubmittable(validateUkeRecords(records, { isKnownDiseaseCode: (c) => isValidDisease(loaded, c) })) ? "自己点検OK" : "自己点検NG";
     const mark = pt.expect ? (engineErrors.length ? `✓検出(${pt.expect})` : `✗未検出(${pt.expect})`) : (engineErrors.length ? `指摘あり` : `指摘なし`);
     if (pt.expect && engineErrors.length) caught++;
     // 摘要欄コメント候補（別表Ⅰ）: このレセプトの処置に紐づく候補数

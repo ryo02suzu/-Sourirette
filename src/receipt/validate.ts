@@ -98,12 +98,17 @@ function dailyTotalMatchesCount(record: UkeRecord): boolean | undefined {
   return sum === count;
 }
 
+export interface ValidateOptions {
+  /** 傷病名コードがマスタに存在するか（省略時は傷病名検証なし）。"0000999" は未コード化で許容 */
+  isKnownDiseaseCode?: (code: string) => boolean;
+}
+
 /**
  * 組み上がった UKE レコード列を提出前点検する。
  * 構造（出現順序・必須レコード）と形式（種別1桁目=3・桁・チェックデジット・GO整合・算定日合計）
- * を検証する。
+ * を検証する。opts.isKnownDiseaseCode を渡すと HS の傷病名コードの実在も検証する。
  */
-export function validateUkeRecords(records: UkeRecord[]): ValidationIssue[] {
+export function validateUkeRecords(records: UkeRecord[], opts: ValidateOptions = {}): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
   const push = (severity: ValidationIssue["severity"], code: string, message: string, receiptNo?: string) =>
     issues.push(receiptNo !== undefined ? { severity, code, message, receiptNo } : { severity, code, message });
@@ -183,9 +188,20 @@ export function validateUkeRecords(records: UkeRecord[]): ValidationIssue[] {
     }
 
     // 傷病名部位（HS）1以上・100件未満
-    const hsCount = g.records.filter((r) => r.identifier === "HS").length;
+    const hsRecords = g.records.filter((r) => r.identifier === "HS");
+    const hsCount = hsRecords.length;
     if (hsCount === 0) push("reject", "2012", "傷病名部位レコード（HS）が1件もありません", g.receiptNo);
     if (hsCount >= 100) push("reject", "2013", `傷病名部位レコード（HS）が100件以上です（${hsCount}件）`, g.receiptNo);
+
+    // 傷病名コードの実在（オプション）。HS の4番目（識別子を除く index 3）が傷病名コード
+    if (opts.isKnownDiseaseCode !== undefined) {
+      for (const hs of hsRecords) {
+        const code = String(hs.fields[3] ?? "").trim();
+        if (code !== "" && !opts.isKnownDiseaseCode(code)) {
+          push("reject", "2016", `傷病名コードがマスタに存在しません: ${code}`, g.receiptNo);
+        }
+      }
+    }
 
     // 診療行為情報（SS/SI/IY/TO）が1以上（CO のみは不可）
     const details = g.records.filter((r) => DETAIL_IDS.has(r.identifier));

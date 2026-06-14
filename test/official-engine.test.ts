@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { join, dirname } from "node:path";
-import { commentCandidates, loadOfficialEngine, type OfficialDataSources } from "../src/billing/official-engine.js";
+import { commentCandidates, isValidDisease, loadOfficialEngine, type OfficialDataSources } from "../src/billing/official-engine.js";
 import type { CalculationContext } from "../src/billing/engine.js";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
@@ -20,6 +20,7 @@ const sources: OfficialDataSources = {
   hojoMaster: buf("data/tensuhyo/01_hojo_master.csv"),
   hokatsu: buf("data/tensuhyo/02_hokatsu.csv"),
   betsu1Csv: readFileSync(join(ROOT, "data/masters/betsu1_shika_20260601.csv"), "utf-8"),
+  diseaseMaster: buf("data/masters/hb_20260601.txt"),
   asOf: "2026-06-12",
 };
 
@@ -62,4 +63,11 @@ test("工場エンジン: 回数制限が発火（初診料を月2回）", () =>
 test("工場: 摘要欄コメント候補を引ける（初診料→健康診断）", () => {
   const candidates = commentCandidates(loaded, "301000110");
   assert.ok(candidates.some((e) => e.commentCode === "820100300"));
+});
+
+test("工場: 傷病名コードの妥当性（実在=OK / 架空=NG / 未コード化=OK）", () => {
+  assert.ok(loaded.counts.diseases > 5000);
+  assert.ok(isValidDisease(loaded, "8840351")); // 慢性歯周炎第１度
+  assert.ok(isValidDisease(loaded, "0000999")); // 未コード化
+  assert.ok(!isValidDisease(loaded, "9999999"));
 });

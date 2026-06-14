@@ -31,6 +31,7 @@ import {
   requiredCommentsFor,
   type Betsu1Entry,
 } from "./betsu1-loader.js";
+import { buildDiseaseIndex, decodeDiseaseMaster, isKnownDiseaseCode, parseDiseaseMaster, type DiseaseRow } from "./disease-loader.js";
 
 /** 復号前の公式データソース（Shift_JIS は Uint8Array、別表ⅠはUTF-8） */
 export interface OfficialDataSources {
@@ -48,6 +49,8 @@ export interface OfficialDataSources {
   hokatsu: Uint8Array;
   /** 別表Ⅰ（歯科）摘要欄コメント（UTF-8 CSV） */
   betsu1Csv: string;
+  /** 歯科傷病名マスタ（hb*.txt, Shift_JIS）。省略時は傷病名検証なし */
+  diseaseMaster?: Uint8Array;
   /** 適用判定の基準日（既定は当日） */
   asOf?: string;
 }
@@ -59,7 +62,9 @@ export interface OfficialEngine {
   codeToKubun: Map<string, string>;
   /** 区分 → 別表Ⅰ 摘要欄コメント候補 */
   betsu1Index: Map<string, Betsu1Entry[]>;
-  counts: { frequencyLimits: number; mutualExclusions: number; inclusionGroups: number; betsu1Entries: number };
+  /** 傷病名コード → 傷病名行（傷病名マスタ未指定時は空） */
+  diseaseIndex: Map<string, DiseaseRow>;
+  counts: { frequencyLimits: number; mutualExclusions: number; inclusionGroups: number; betsu1Entries: number; diseases: number };
 }
 
 /** コード接頭辞 → 診療識別（別表20）の簡易割当（UKE の SS 用） */
@@ -109,6 +114,9 @@ export function loadOfficialEngine(src: OfficialDataSources, validFrom = "2024-0
   const codeToKubun = buildCodeToKubun(masterText);
   const betsu1Entries = parseBetsu1(src.betsu1Csv);
   const betsu1Index = indexByKubun(betsu1Entries);
+  const diseaseIndex = src.diseaseMaster !== undefined
+    ? buildDiseaseIndex(parseDiseaseMaster(decodeDiseaseMaster(src.diseaseMaster)))
+    : new Map<string, DiseaseRow>();
 
   const engine = new CalculationEngine([
     pricingRule(validFrom),
@@ -121,11 +129,18 @@ export function loadOfficialEngine(src: OfficialDataSources, validFrom = "2024-0
     master,
     codeToKubun,
     betsu1Index,
-    counts: { frequencyLimits: frequencyLimits.length, mutualExclusions: mutualExclusions.length, inclusionGroups, betsu1Entries: betsu1Entries.length },
+    diseaseIndex,
+    counts: { frequencyLimits: frequencyLimits.length, mutualExclusions: mutualExclusions.length, inclusionGroups, betsu1Entries: betsu1Entries.length, diseases: diseaseIndex.size },
   };
 }
 
 /** 構成済みエンジンに対し、ある診療行為の摘要欄コメント候補（別表Ⅰ）を引く */
 export function commentCandidates(loaded: OfficialEngine, procedureCode: string): Betsu1Entry[] {
   return requiredCommentsFor(procedureCode, loaded.codeToKubun, loaded.betsu1Index);
+}
+
+/** 傷病名コードが傷病名マスタに存在するか（傷病名マスタ未指定時は常に true） */
+export function isValidDisease(loaded: OfficialEngine, code: string): boolean {
+  if (loaded.diseaseIndex.size === 0) return true;
+  return isKnownDiseaseCode(code, loaded.diseaseIndex);
 }
