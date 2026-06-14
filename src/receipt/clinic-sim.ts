@@ -12,31 +12,15 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { join, dirname } from "node:path";
-import {
-  CalculationEngine,
-  type CalculationContext,
-  type ClaimLine,
-  type Rule,
-} from "../billing/engine.js";
-import { decodeSjis, parseDentalProcedureMaster, buildMasterFromRows } from "../billing/master-loader.js";
-import { createDataDrivenRules } from "../billing/rule-tables.js";
-import {
-  createInclusionGroupRule,
-  decodeTensuhyo,
-  haihanToMutualExclusions,
-  parseHaihan,
-  parseHojoMasterGroups,
-  parseHokatsuChildren,
-  parseSanteiKaisu,
-  santeiKaisuToFrequencyLimits,
-} from "../billing/tensuhyo-loader.js";
+import type { CalculationContext } from "../billing/engine.js";
+import { loadOfficialEngine, type OfficialDataSources } from "../billing/official-engine.js";
 import type { Diagnosis, Patient, Visit } from "../domain/types.js";
 import { monthlyClaimToReceipt, type VisitClaim } from "./from-claim.js";
 import { assembleUkeFile } from "./build.js";
 import { validateUkeRecords, isSubmittable } from "./validate.js";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
-const load = (rel: string) => readFileSync(join(ROOT, rel));
+const buf = (rel: string) => new Uint8Array(readFileSync(join(ROOT, rel)));
 const ASOF = "2026-06-12";
 
 const CODES = {
@@ -48,40 +32,20 @@ const CODES = {
   kaihou: "302002210", // 開放型病院共同指導料1 ← 初診と同日背反
 };
 
-function categoryOf(code: string): string {
-  if (code.startsWith("3010")) return "11";
-  if (code.startsWith("305")) return "31";
-  if (code.startsWith("309")) return "41"; // 処置・手術
-  return "80";
-}
-
-/** 実マスタ＋電子点数表の全ルールを1回だけ構築する */
+/** 公式エンジン工場から、実マスタ＋電子点数表の全ルールを構築する */
 function build() {
-  const master = buildMasterFromRows(parseDentalProcedureMaster(decodeSjis(new Uint8Array(load("data/masters/h_ALL20260611.csv")))));
-  const frequencyLimits = santeiKaisuToFrequencyLimits(parseSanteiKaisu(decodeTensuhyo(new Uint8Array(load("data/tensuhyo/04_santei_kaisu.csv")))), ASOF);
-  const sameDay = haihanToMutualExclusions(parseHaihan(decodeTensuhyo(new Uint8Array(load("data/tensuhyo/03-1_haihan.csv")))), "same-day", ASOF);
-  const sameMonth = haihanToMutualExclusions(parseHaihan(decodeTensuhyo(new Uint8Array(load("data/tensuhyo/03-2_haihan.csv")))), "same-month", ASOF);
-  const mutualExclusions = [...sameDay, ...sameMonth];
-  const parentsByGroup = parseHojoMasterGroups(decodeTensuhyo(new Uint8Array(load("data/tensuhyo/01_hojo_master.csv"))), ASOF);
-  const childrenByGroup = parseHokatsuChildren(decodeTensuhyo(new Uint8Array(load("data/tensuhyo/02_hokatsu.csv"))), ASOF);
-  const inclusionRule = createInclusionGroupRule(parentsByGroup, childrenByGroup, "2024-04-01");
-  // 包括グループ数（ペア展開しないので件数はグループ単位）
-  const inclusionGroups = [...parentsByGroup.keys()].filter((g) => childrenByGroup.has(g)).length;
-  const pricing: Rule = {
-    id: "sim-pricing/2026-04-01",
-    validFrom: "2026-04-01",
-    evaluate(ctx: CalculationContext) {
-      const lines: ClaimLine[] = [];
-      for (const p of ctx.procedures) {
-        const row = ctx.master.findProcedure(p.procedureCode, ctx.visit.visitDate);
-        if (!row) continue;
-        lines.push({ procedureCode: p.procedureCode, name: row.name, points: row.points, quantity: p.quantity, category: categoryOf(p.procedureCode) });
-      }
-      return { lines };
-    },
+  const sources: OfficialDataSources = {
+    procedureMaster: buf("data/masters/h_ALL20260611.csv"),
+    santeiKaisu: buf("data/tensuhyo/04_santei_kaisu.csv"),
+    haihanSameDay: buf("data/tensuhyo/03-1_haihan.csv"),
+    haihanSameMonth: buf("data/tensuhyo/03-2_haihan.csv"),
+    hojoMaster: buf("data/tensuhyo/01_hojo_master.csv"),
+    hokatsu: buf("data/tensuhyo/02_hokatsu.csv"),
+    betsu1Csv: readFileSync(join(ROOT, "data/masters/betsu1_shika_20260601.csv"), "utf-8"),
+    asOf: ASOF,
   };
-  const engine = new CalculationEngine([pricing, ...createDataDrivenRules({ frequencyLimits, mutualExclusions }, "2024-04-01"), inclusionRule]);
-  return { engine, master, counts: { frequencyLimits: frequencyLimits.length, mutualExclusions: mutualExclusions.length, inclusionGroups } };
+  const loaded = loadOfficialEngine(sources);
+  return { engine: loaded.engine, master: loaded.master, counts: loaded.counts };
 }
 
 interface SimPatient {
