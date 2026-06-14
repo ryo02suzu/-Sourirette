@@ -492,3 +492,17 @@
      追加し「name（氏名）は必須です」等の明確なメッセージに
 - サーバ異常系を確認: 不正JSON/空visits/必須欠落/不正コード/未知URL すべてクラッシュせず適切応答
 - テスト 134→137件 全通過、アプリ build 通過
+
+## 追記40（2026-06-14 / 算定ルール調査DB（病名適応）を取り込み・有効化）
+
+- ユーザー提供の算定ルール調査DB（.md内のJSON）を取り込み。Claude引用マーカーを除去して
+  `data/rules/santei-rules-R8.json`（disease_master24/diagnosis_procedure46/facility_standard10/
+  age_time_site17/computer_check3）として保存。出典mdも docs/specs/santei-rules-db-R8.md に
+- `src/billing/rules-db-loader.ts`: 調査DB→DiagnosisRequirement[]。
+  - 「不適応（認めない）」のみルール化（適応＝肯定確認はスキップ＝誤警告防止）
+  - procedure_kubun(I005等)→9桁コードに展開、forbidden_diseases→病名略号の全関連コードに展開
+  - 全件 severity=warning（審査裁量・要歯科医師確認）
+- `official-engine.ts`: rulesDbJson ソースを追加し病名適応を有効化（**62ルール**生成）
+- 発火確認: 抜髄(309002110)＋Per病名(8832354)→「算定できません」警告。病名なしでは出ない
+- R8改定情報も記録（初診267→272・再診58→59、外来物価対応料新設、SPT/P重防→歯周病継続支援治療統合）
+- テスト 138→139件 全通過

@@ -21,6 +21,7 @@ const sources: OfficialDataSources = {
   hokatsu: buf("data/tensuhyo/02_hokatsu.csv"),
   betsu1Csv: readFileSync(join(ROOT, "data/masters/betsu1_shika_20260601.csv"), "utf-8"),
   diseaseMasters: [buf("data/masters/b_20260601.txt"), buf("data/masters/hb_20260601.txt")],
+    rulesDbJson: readFileSync(join(ROOT, "data/rules/santei-rules-R8.json"), "utf-8"),
   asOf: "2026-06-12",
 };
 
@@ -63,6 +64,24 @@ test("工場エンジン: 回数制限が発火（初診料を月2回）", () =>
 test("工場: 摘要欄コメント候補を引ける（初診料→健康診断）", () => {
   const candidates = commentCandidates(loaded, "301000110");
   assert.ok(candidates.some((e) => e.commentCode === "820100300"));
+});
+
+test("工場: 病名適応ルール（調査DB）が有効化・発火（Per病名で抜髄→警告）", () => {
+  assert.ok(loaded.counts.diagnosisRules > 0, `diagnosisRules=${loaded.counts.diagnosisRules}`);
+  const r = loaded.engine.calculate(ctx(["309002110"])); // 抜髄
+  // 病名なし→必要病名なしの警告は出ないが、Per病名を付けると不適応警告
+  const r2 = loaded.engine.calculate({
+    patient: { id: "p", birthDate: "1980-01-01", sex: "F" },
+    visit: { id: "v", patientId: "p", visitDate: "2026-06-12", visitType: "first" },
+    procedures: [{ procedureCode: "309002110", quantity: 1 }],
+    diagnoses: [{ diseaseCode: "8832354", onsetDate: "2026-06-01" }], // 急性根尖性歯周炎(Per)
+    history: { countInMonth: () => 0 },
+    facility: { has: () => false },
+    master: loaded.master,
+  });
+  assert.ok(r2.issues.some((i) => i.severity === "warning" && i.procedureCode === "309002110" && i.message.includes("算定できません")));
+  // r（病名なし）は不適応警告を出さない
+  assert.ok(!r.issues.some((i) => i.message.includes("算定できません")));
 });
 
 test("工場: 傷病名コードの妥当性（実在=OK / 架空=NG / 未コード化=OK）", () => {

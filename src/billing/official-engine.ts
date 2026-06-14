@@ -16,6 +16,7 @@ import { decodeSjis, parseDentalProcedureMaster, buildMasterFromRows } from "./m
 import type { InMemoryMaster } from "./master.js";
 import { createDataDrivenRules } from "./rule-tables.js";
 import { createSiteDiagnosisRule } from "./rules/site-diagnosis.js";
+import { buildDiagnosisRequirements, parseRulesDb } from "./rules-db-loader.js";
 import {
   createInclusionGroupRule,
   haihanToMutualExclusions,
@@ -27,6 +28,7 @@ import {
 } from "./tensuhyo-loader.js";
 import {
   buildCodeToKubun,
+  buildKubunToCodes,
   indexByKubun,
   parseBetsu1,
   requiredCommentsFor,
@@ -56,6 +58,8 @@ export interface OfficialDataSources {
    * （例: 慢性歯周炎=hbのみ / 欠損歯=bのみ）、両方を渡さないと誤検知する。
    */
   diseaseMasters?: Uint8Array[];
+  /** 算定ルール調査DB（santei-rules-R8.json）。指定すると病名適応（不適応＝warning）を有効化 */
+  rulesDbJson?: string;
   /** 適用判定の基準日（既定は当日） */
   asOf?: string;
 }
@@ -69,7 +73,7 @@ export interface OfficialEngine {
   betsu1Index: Map<string, Betsu1Entry[]>;
   /** 傷病名コード → 傷病名行（傷病名マスタ未指定時は空） */
   diseaseIndex: Map<string, DiseaseRow>;
-  counts: { frequencyLimits: number; mutualExclusions: number; inclusionGroups: number; betsu1Entries: number; diseases: number };
+  counts: { frequencyLimits: number; mutualExclusions: number; inclusionGroups: number; betsu1Entries: number; diseases: number; diagnosisRules: number };
 }
 
 /** コード接頭辞 → 診療識別（別表20）の簡易割当（UKE の SS 用） */
@@ -127,9 +131,14 @@ export function loadOfficialEngine(src: OfficialDataSources, validFrom = "2024-0
   const diseaseRows = (src.diseaseMasters ?? []).flatMap((m) => parseDiseaseMaster(decodeDiseaseMaster(m)));
   const diseaseIndex = buildDiseaseIndex(diseaseRows);
 
+  // 算定ルール調査DB（病名適応の不適応＝warning）を区分→9桁コードに展開して有効化
+  const diagnosisRequirements = src.rulesDbJson !== undefined
+    ? buildDiagnosisRequirements(parseRulesDb(src.rulesDbJson), buildKubunToCodes(masterText))
+    : [];
+
   const engine = new CalculationEngine([
     pricingRule(validFrom),
-    ...createDataDrivenRules({ frequencyLimits, mutualExclusions }, validFrom),
+    ...createDataDrivenRules({ frequencyLimits, mutualExclusions, diagnosisRequirements }, validFrom),
     inclusionRule,
     createSiteDiagnosisRule(validFrom), // 部位×病名 歯式突合（処置の歯が傷病名部位にあるか）
   ]);
@@ -140,7 +149,7 @@ export function loadOfficialEngine(src: OfficialDataSources, validFrom = "2024-0
     codeToKubun,
     betsu1Index,
     diseaseIndex,
-    counts: { frequencyLimits: frequencyLimits.length, mutualExclusions: mutualExclusions.length, inclusionGroups, betsu1Entries: betsu1Entries.length, diseases: diseaseIndex.size },
+    counts: { frequencyLimits: frequencyLimits.length, mutualExclusions: mutualExclusions.length, inclusionGroups, betsu1Entries: betsu1Entries.length, diseases: diseaseIndex.size, diagnosisRules: diagnosisRequirements.length },
   };
 }
 

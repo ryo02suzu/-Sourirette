@@ -33,6 +33,7 @@ function loadEngine() {
     hokatsu: buf("data/tensuhyo/02_hokatsu.csv"),
     betsu1Csv: readFileSync(join(ROOT, "data/masters/betsu1_shika_20260601.csv"), "utf-8"),
     diseaseMasters: [buf("data/masters/b_20260601.txt"), buf("data/masters/hb_20260601.txt")],
+    rulesDbJson: readFileSync(join(ROOT, "data/rules/santei-rules-R8.json"), "utf-8"),
   };
   return loadOfficialEngine(sources);
 }
