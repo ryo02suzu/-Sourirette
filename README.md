@@ -65,7 +65,7 @@ test/                ユニットテスト（node:test）
 ```bash
 npm install     # devDependencies（typescript / @types/node）のみ
 npm run build   # tsc でコンパイル
-npm test        # ビルド + node --test（77 テスト）
+npm test        # ビルド + node --test（94 テスト）
 ```
 
 ## 設計上の絶対原則
