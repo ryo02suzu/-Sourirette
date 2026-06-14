@@ -105,6 +105,34 @@ export function buildCodeToKubun(utf8: string): Map<string, string> {
 }
 
 /**
+ * 区分（告示番号）→ その区分に属する9桁診療行為コード一覧 の索引。
+ * 算定ルール調査DBの procedure_kubun（例 I005, J000）を実コードに展開するのに使う。
+ */
+export function buildKubunToCodes(utf8: string): Map<string, string[]> {
+  const map = new Map<string, string[]>();
+  const codeToKubun = buildCodeToKubun(utf8);
+  for (const [code, kubun] of codeToKubun) {
+    let arr = map.get(kubun);
+    if (arr === undefined) map.set(kubun, (arr = []));
+    arr.push(code);
+  }
+  return map;
+}
+
+/**
+ * 区分（例 "I005"）に対応する9桁コードを返す。完全一致＋枝番付き（"I005-2"等）も含める。
+ * 調査DBの区分が "I000/I001" のように複数指定の場合は呼び出し側で分割して渡す。
+ */
+export function codesForKubun(kubun: string, index: Map<string, string[]>): string[] {
+  const k = normalizeKubun(kubun);
+  const out: string[] = [];
+  for (const [key, codes] of index) {
+    if (key === k || key.startsWith(`${k}-`)) out.push(...codes);
+  }
+  return out;
+}
+
+/**
  * 診療行為コードに対し、別表Ⅰが定める摘要欄コメント候補を返す。
  * 区分が一致するエントリ（条件付き）を返すため、最終的にどれを記載するかは記載事項
  * （recordingNote）の条件を見て歯科医師が判断する（強制ではなく候補提示）。
