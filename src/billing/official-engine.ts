@@ -15,6 +15,7 @@ import { CalculationEngine, type CalculationContext, type ClaimLine, type Rule }
 import { decodeSjis, parseDentalProcedureMaster, buildMasterFromRows } from "./master-loader.js";
 import type { InMemoryMaster } from "./master.js";
 import { createDataDrivenRules } from "./rule-tables.js";
+import { createSiteDiagnosisRule } from "./rules/site-diagnosis.js";
 import {
   createInclusionGroupRule,
   haihanToMutualExclusions,
@@ -122,6 +123,7 @@ export function loadOfficialEngine(src: OfficialDataSources, validFrom = "2024-0
     pricingRule(validFrom),
     ...createDataDrivenRules({ frequencyLimits, mutualExclusions }, validFrom),
     inclusionRule,
+    createSiteDiagnosisRule(validFrom), // 部位×病名 歯式突合（処置の歯が傷病名部位にあるか）
   ]);
 
   return {
