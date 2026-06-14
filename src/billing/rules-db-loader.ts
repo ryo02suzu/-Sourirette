@@ -91,6 +91,10 @@ export interface DiseaseResolver {
 
 // 単一の病名に解決できないプロセス記述（「C以外の傷病名」「C→Per移行病名」等）はルール化しない
 const UNRESOLVABLE_TOKEN = /以外|→|複数回|算定なし|疑い病名/;
+/** 故意に未解決とする（プロセス記述）トークンか。診断レポートで「未解決」と区別する */
+export function isIntentionallyUnresolvable(token: string): boolean {
+  return UNRESOLVABLE_TOKEN.test(token.trim());
+}
 // 末尾の限定句（「Pのみ」「ZS単独」「…等」）を落としてから解決する
 const TRAILING_QUALIFIER = /(単独|のみ|等)+$/;
 
@@ -157,6 +161,32 @@ export function buildDiagnosisRequirements(
         note: `${dp.note ?? dp.procedure_name ?? ""}（${dp.source ?? "審査事例"}・要歯科医師確認）`,
       });
     }
+  }
+  return out;
+}
+
+export interface UnresolvedToken {
+  ruleId: string;
+  field: "required" | "forbidden";
+  token: string;
+}
+
+/**
+ * diagnosis_procedure の病名トークンのうち、コードに解決できなかったものを洗い出す（診断用）。
+ * 「故意に未解決（C以外・移行病名 等）」は除外し、本来解決できるはずなのに 0件 になった
+ * トークンだけを返す。これにより、誤記や和名のゆれで黙ってルールが効かなくなる事故を可視化する。
+ */
+export function reportUnresolvedDiseaseTokens(db: RulesDb, resolver: DiseaseResolver): UnresolvedToken[] {
+  const out: UnresolvedToken[] = [];
+  const check = (ruleId: string, field: "required" | "forbidden", tokens: string[] | undefined): void => {
+    for (const t of tokens ?? []) {
+      if (isIntentionallyUnresolvable(t)) continue;
+      if (resolveDiseaseCodes(t, resolver).length === 0) out.push({ ruleId, field, token: t });
+    }
+  };
+  for (const dp of db.diagnosis_procedure) {
+    check(dp.id, "required", dp.required_diseases);
+    check(dp.id, "forbidden", dp.forbidden_diseases);
   }
   return out;
 }

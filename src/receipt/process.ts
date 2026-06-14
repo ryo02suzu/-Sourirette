@@ -178,6 +178,11 @@ export function processReceipt(loaded: OfficialEngine, input: ProcessReceiptInpu
     commentCandidates(loaded, code).map((e) => ({ procedureCode: code, commentCode: e.commentCode, displayText: e.displayText, recordingNote: e.recordingNote })),
   );
 
+  // 提出可否は「UKE形式点検」だけでなく「算定エンジンの未解決エラー」も見る。
+  // 背反（併算定不可）・初再診の競合・不正コード・部位不一致 等は、そのまま出すと返戻になるため
+  // 提出不可とする。包括（excludesFromBilling で行を除外済み＝解決済み）はブロックしない。
+  const blockingAlgorithmError = algorithmIssues.some((i) => i.severity === "error" && i.excludesFromBilling !== true);
+
   return {
     recordsText: serializeFile(records).replace(/\r\n/g, "\n"),
     ukeBase64: Buffer.from(bytes).toString("base64"),
@@ -186,7 +191,7 @@ export function processReceipt(loaded: OfficialEngine, input: ProcessReceiptInpu
     totalPoints,
     visitDays,
     validation,
-    submittable: isSubmittable(validation),
+    submittable: isSubmittable(validation) && !blockingAlgorithmError,
     algorithmIssues,
     commentCandidates: candidates,
     missedChargeHints: missedChargeHints(loaded, allCodes),

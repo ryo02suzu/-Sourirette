@@ -17,7 +17,7 @@ import type { InMemoryMaster } from "./master.js";
 import { createDataDrivenRules } from "./rule-tables.js";
 import { createSiteDiagnosisRule } from "./rules/site-diagnosis.js";
 import { buildAdditionIndex, createAdditionRule } from "./rules/additions.js";
-import { buildChargeHintsByKubun, buildDiagnosisRequirements, parseRulesDb, type AgeTimeSiteEntry, type RulesDb } from "./rules-db-loader.js";
+import { buildChargeHintsByKubun, buildDiagnosisRequirements, buildDiseaseAbbrToCodes, parseRulesDb, reportUnresolvedDiseaseTokens, type AgeTimeSiteEntry, type RulesDb, type UnresolvedToken } from "./rules-db-loader.js";
 import { evaluateAlerts } from "../alerts/engine.js";
 import type { Alert, AlertInput } from "../alerts/types.js";
 import {
@@ -82,7 +82,9 @@ export interface OfficialEngine {
   chargeHintsByKubun: Map<string, AgeTimeSiteEntry[]>;
   /** 算定ルール調査DB（アラートエンジン用。未指定時は undefined） */
   rulesDb?: RulesDb;
-  counts: { frequencyLimits: number; mutualExclusions: number; inclusionGroups: number; betsu1Entries: number; diseases: number; diagnosisRules: number };
+  /** 病名トークンのうちコードに解決できなかったもの（誤記・和名ゆれの可視化用） */
+  unresolvedDiseaseTokens: UnresolvedToken[];
+  counts: { frequencyLimits: number; mutualExclusions: number; inclusionGroups: number; betsu1Entries: number; diseases: number; diagnosisRules: number; unresolvedDiseaseTokens: number };
 }
 
 /** コード接頭辞 → 診療識別（別表20）の簡易割当（UKE の SS 用） */
@@ -149,6 +151,9 @@ export function loadOfficialEngine(src: OfficialDataSources, validFrom = "2024-0
     ? buildDiagnosisRequirements(rulesDb, buildKubunToCodes(masterText), diseaseNameToCodes)
     : [];
   const chargeHintsByKubun = rulesDb !== undefined ? buildChargeHintsByKubun(rulesDb) : new Map<string, AgeTimeSiteEntry[]>();
+  const unresolvedDiseaseTokens = rulesDb !== undefined
+    ? reportUnresolvedDiseaseTokens(rulesDb, { abbrToCodes: buildDiseaseAbbrToCodes(rulesDb), nameToCodes: diseaseNameToCodes })
+    : [];
 
   const engine = new CalculationEngine([
     pricingRule(validFrom),
@@ -167,7 +172,8 @@ export function loadOfficialEngine(src: OfficialDataSources, validFrom = "2024-0
     diseaseNameToCodes,
     chargeHintsByKubun,
     ...(rulesDb !== undefined ? { rulesDb } : {}),
-    counts: { frequencyLimits: frequencyLimits.length, mutualExclusions: mutualExclusions.length, inclusionGroups, betsu1Entries: betsu1Entries.length, diseases: diseaseIndex.size, diagnosisRules: diagnosisRequirements.length },
+    unresolvedDiseaseTokens,
+    counts: { frequencyLimits: frequencyLimits.length, mutualExclusions: mutualExclusions.length, inclusionGroups, betsu1Entries: betsu1Entries.length, diseases: diseaseIndex.size, diagnosisRules: diagnosisRequirements.length, unresolvedDiseaseTokens: unresolvedDiseaseTokens.length },
   };
 }
 

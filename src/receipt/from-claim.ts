@@ -125,8 +125,8 @@ function mergeMonthlyLines(visits: readonly VisitClaim[]): MergedLine[] {
   return order.map((k) => merged.get(k)!);
 }
 
-/** マージ済みの行 → SS レコード */
-function mergedLineToSs(entry: MergedLine, burden: string): UkeRecord {
+/** マージ済みの行 → SS レコード。omitCategory=true で 診療識別 を省略する（同一識別の2件目以降） */
+function mergedLineToSs(entry: MergedLine, burden: string, omitCategory = false): UkeRecord {
   const daily: Record<number, number> = {};
   let count = 0;
   for (const [day, n] of entry.daily) {
@@ -140,13 +140,30 @@ function mergedLineToSs(entry: MergedLine, burden: string): UkeRecord {
     count,
     daily,
   };
-  if (entry.line.category !== undefined) params.category = entry.line.category;
+  if (!omitCategory && entry.line.category !== undefined) params.category = entry.line.category;
   if (entry.line.additions && entry.line.additions.length > 0) {
     params.additions = entry.line.additions.map((a) =>
       a.quantity !== undefined ? { code: a.code, quantity: a.quantity } : { code: a.code },
     );
   }
   return buildSs(params);
+}
+
+/**
+ * マージ済み行を SS レコード列へ。記録条件仕様に従い:
+ *   - 診療識別（別表20）の昇順に並べてグループ化する。
+ *   - 各診療識別グループの先頭行のみ 診療識別 を記録し、2件目以降は省略する。
+ * これにより 初診料 と その乳幼児/時間外加算 のような同一識別の行で 診療識別 が重複しない。
+ */
+function buildDetailRecords(merged: readonly MergedLine[], burden: string): UkeRecord[] {
+  const sorted = [...merged].sort((a, b) => Number(a.line.category ?? 0) - Number(b.line.category ?? 0));
+  const seen = new Set<string>();
+  return sorted.map((entry) => {
+    const cat = entry.line.category ?? "";
+    const omit = cat !== "" && seen.has(cat);
+    if (cat !== "") seen.add(cat);
+    return mergedLineToSs(entry, burden, omit);
+  });
 }
 
 /** 傷病名を傷病名コード＋部位＋修飾語で重複排除する */
@@ -218,7 +235,7 @@ export function monthlyClaimToReceipt(input: MonthlyReceiptInput): UkeReceipt {
 
   const hs = diagnoses.map((dx) => diagnosisToHs(dx, toothCondition));
 
-  const details = mergeMonthlyLines(input.visits).map((entry) => mergedLineToSs(entry, burden));
+  const details = buildDetailRecords(mergeMonthlyLines(input.visits), burden);
   if (details.length === 0) {
     throw new Error("算定結果が空です（SS等の診療行為レコードが1以上必要）");
   }

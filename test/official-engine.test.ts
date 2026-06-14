@@ -34,6 +34,18 @@ test("工場: 全公式データを1つに組み上げる（件数が揃う）",
   assert.ok(loaded.counts.betsu1Entries > 180);
 });
 
+test("診断: 未解決の病名トークンが可視化される（黙って捨てない）", () => {
+  // 解決できなかったトークンは件数・一覧として露出する（誤記・和名ゆれの検知）
+  assert.equal(loaded.counts.unresolvedDiseaseTokens, loaded.unresolvedDiseaseTokens.length);
+  // 故意に未解決とするプロセス記述（「○○以外」「→移行」等）は含めない
+  assert.ok(!loaded.unresolvedDiseaseTokens.some((t) => /以外|→|疑い病名/.test(t.token)));
+  // 各エントリは出所（ruleId）と field を持つ
+  for (const t of loaded.unresolvedDiseaseTokens) {
+    assert.ok(t.ruleId.length > 0);
+    assert.ok(t.field === "required" || t.field === "forbidden");
+  }
+});
+
 function ctx(procedures: string[], monthCounts: Record<string, number> = {}): CalculationContext {
   return {
     patient: { id: "p", birthDate: "1980-01-01", sex: "F" },
