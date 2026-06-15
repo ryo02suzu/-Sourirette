@@ -54,6 +54,23 @@ test("背反→併算定不可: 03-1は同日scope・対称重複を排除する
   assert.equal(keys.size, ex.length, "重複ペアが残っている");
 });
 
+// CSV由来の既知ケースを固定（改定追補でCSV形式がズレたら大声で落ちる）。
+// 背反・回数は提出をブロックする側なので、パースズレ＝正しいレセの誤弾きになる。
+test("背反(既知ロック): 03-1 同日に 歯科初診料×開放型病院共同指導料1 が存在する", () => {
+  const ex = haihanToMutualExclusions(haihanRows, "same-day", ASOF);
+  const hit = ex.find((e) => e.codeA === "301000110" && e.codeB === "302002210");
+  assert.ok(hit, "既知の同日背反（301000110×302002210）が消えた＝CSVパースの系統ズレを疑う");
+  assert.equal(hit!.scope, "same-day");
+});
+
+test("背反(既知ロック): 03-2 同月に 歯科初診料×歯科矯正管理料 が存在する", () => {
+  const ex2 = haihanToMutualExclusions(parseHaihan(load("data/tensuhyo/03-2_haihan.csv")), HAIHAN_TABLE_SCOPE["03-2"] as "same-month", ASOF);
+  assert.ok(ex2.length > 100, `pairs=${ex2.length}`);
+  assert.ok(ex2.every((e) => e.scope === "same-month"));
+  const hit = ex2.find((e) => e.codeA === "301000110" && e.codeB === "314000310");
+  assert.ok(hit, "既知の同月背反（301000110×314000310）が消えた＝03-2パースの系統ズレを疑う");
+});
+
 test("包括→包括ルール: 抜髄が根管貼薬を包括する（仕様の例を実データで再現）", () => {
   const parents = parseHojoMasterGroups(load("data/tensuhyo/01_hojo_master.csv"), ASOF);
   const children = parseHokatsuChildren(load("data/tensuhyo/02_hokatsu.csv"), ASOF);

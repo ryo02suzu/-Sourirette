@@ -102,6 +102,24 @@ test("包括は同日のみ: 親が居なければ子は請求に残る（根管
   assert.ok(!r.issues.some((i) => i.excludesFromBilling));
 });
 
+// 回数・背反（提出ブロック側）の発火を実データで固定。CSVパースがズレると正しいレセが弾かれるため。
+test("回数(実データ): 歯科初診料を当月2回目で算定すると月1回超過のerror", () => {
+  // 当月に既に1回（history=1）算定済みの状態で当日もう1回 → 超過
+  const r = loaded.engine.calculate(ctx(["301000110"], { "301000110": 1 }));
+  assert.ok(r.issues.some((i) => i.severity === "error" && i.procedureCode === "301000110" && i.message.includes("月1回")));
+});
+
+test("回数(実データ): 当月初回なら歯科初診料はerrorなし（誤弾きしない）", () => {
+  const r = loaded.engine.calculate(ctx(["301000110"]));
+  assert.ok(!r.issues.some((i) => i.procedureCode === "301000110" && i.severity === "error"));
+  assert.equal(r.totalPoints, 272);
+});
+
+test("背反(実データ): 歯科初診料と開放型病院共同指導料1を同日算定するとerror", () => {
+  const r = loaded.engine.calculate(ctx(["301000110", "302002210"]));
+  assert.ok(r.issues.some((i) => i.severity === "error" && i.message.includes("併算定")));
+});
+
 test("工場エンジン: 回数制限が発火（初診料を月2回）", () => {
   const r = loaded.engine.calculate(ctx(["301000110"], { "301000110": 1 }));
   assert.ok(r.issues.some((i) => i.severity === "error" && i.procedureCode === "301000110"));
