@@ -19,7 +19,7 @@
    "九州厚生局『令和8年度診療報酬改定に伴う施設基準の届出等について（歯科）令和8年4月14日版』",
    "厚労省『令和8年度診療報酬改定の概要【歯科】令和8年3月5日版』"
   ],
-  "note": "審査情報提供事例はR6以前発出だが現行有効が多い。R8で取扱い変更の可能性がある事例は個別にneeds_verificationを付す。各事例は『画一的・一律的に適用されるものではない』旨を支払基金が明記、最終適否は審査委員会の歯科医学的判断による。 ／ R8追補（2026-06-14取込）: 審査情報提供事例 DP047-095・施設基準 FS011-026・通則/注 AT018-036・コンピュータチェック CC004-013 を追加。"
+  "note": "審査情報提供事例はR6以前発出だが現行有効が多い。R8で取扱い変更の可能性がある事例は個別にneeds_verificationを付す。各事例は『画一的・一律的に適用されるものではない』旨を支払基金が明記、最終適否は審査委員会の歯科医学的判断による。 ／ R8追補（2026-06-14取込）: 審査情報提供事例 DP047-095・施設基準 FS011-026・通則/注 AT018-036・コンピュータチェック CC004-013 を追加。 ／ 重複排除(2026-06-15): 同一審査事例の二重エントリ33件を削除（発火する側を優先保持）。"
  },
  "disease_master": [
   {
@@ -802,22 +802,6 @@
    "needs_code_mapping": true
   },
   {
-   "id": "DP038",
-   "procedure_kubun": "M029",
-   "procedure_codes": [],
-   "procedure_name": "有床義歯修理",
-   "required_diseases": [],
-   "forbidden_diseases": [
-    "口腔褥瘡性潰瘍Dul"
-   ],
-   "relation": "不適応",
-   "source": "情提175",
-   "confidence": "high",
-   "severity": "warning",
-   "requires_dentist_review": true,
-   "needs_code_mapping": true
-  },
-  {
    "id": "DP039",
    "procedure_kubun": "M030",
    "procedure_codes": [],
@@ -950,159 +934,6 @@
    "note": "SRP前の抗菌薬を認める"
   },
   {
-   "id": "DP047",
-   "procedure_kubun": "I000",
-   "procedure_codes": [],
-   "procedure_name": "う蝕処置",
-   "required_diseases": [
-    "Pul"
-   ],
-   "forbidden_diseases": [],
-   "relation": "適応",
-   "source": "情提 う蝕処置②（事例84）",
-   "confidence": "high",
-   "severity": "warning",
-   "requires_dentist_review": true,
-   "needs_code_mapping": true,
-   "note": "原則として「歯髄炎（Pul）」病名でう蝕処置の算定を認める。"
-  },
-  {
-   "id": "DP048",
-   "procedure_kubun": "I000",
-   "procedure_codes": [],
-   "procedure_name": "う蝕処置",
-   "required_diseases": [],
-   "forbidden_diseases": [
-    "歯の亜脱臼"
-   ],
-   "relation": "不適応",
-   "source": "情提 う蝕処置③（事例183）",
-   "confidence": "high",
-   "severity": "warning",
-   "requires_dentist_review": true,
-   "needs_code_mapping": true,
-   "note": "原則として「歯の亜脱臼」病名ではう蝕処置の算定を認めない。"
-  },
-  {
-   "id": "DP049",
-   "procedure_kubun": "I000",
-   "procedure_codes": [],
-   "procedure_name": "う蝕処置",
-   "required_diseases": [
-    "FrT（歯の破折）"
-   ],
-   "forbidden_diseases": [],
-   "relation": "適応",
-   "source": "情提 う蝕処置④（事例227）",
-   "confidence": "high",
-   "severity": "warning",
-   "requires_dentist_review": true,
-   "needs_code_mapping": true,
-   "note": "原則として「歯の破折（FrT）」病名でう蝕処置の算定を認める。"
-  },
-  {
-   "id": "DP050",
-   "procedure_kubun": "I000",
-   "procedure_codes": [],
-   "procedure_name": "う蝕処置",
-   "required_diseases": [
-    "C4（残根）"
-   ],
-   "forbidden_diseases": [],
-   "relation": "適応",
-   "source": "情提 う蝕処置⑤（事例229）",
-   "confidence": "high",
-   "severity": "warning",
-   "requires_dentist_review": true,
-   "needs_code_mapping": true,
-   "note": "原則として「残根（C4）」病名でう蝕処置の算定を認める（ 軟化象牙質除去・根管感染進行防止）。"
-  },
-  {
-   "id": "DP051",
-   "procedure_kubun": "I000",
-   "procedure_codes": [],
-   "procedure_name": "う蝕処置",
-   "required_diseases": [
-    "Ero（酸蝕症）"
-   ],
-   "forbidden_diseases": [],
-   "relation": "適応",
-   "source": "情提 う蝕処置⑥（事例230）",
-   "confidence": "high",
-   "severity": "warning",
-   "requires_dentist_review": true,
-   "needs_code_mapping": true,
-   "note": "原則として「酸蝕症（Ero）」病名でう蝕処置の算定を認める。"
-  },
-  {
-   "id": "DP052",
-   "procedure_kubun": "I000",
-   "procedure_codes": [],
-   "procedure_name": "う蝕処置",
-   "required_diseases": [
-    "WSD（歯質くさび状欠損）"
-   ],
-   "forbidden_diseases": [],
-   "relation": "適応",
-   "source": "情提 う蝕処置⑦（事例231）",
-   "confidence": "high",
-   "severity": "warning",
-   "requires_dentist_review": true,
-   "needs_code_mapping": true,
-   "note": "原則として「歯質くさび状欠損（WSD）」病名でう蝕処置の算定を認める。"
-  },
-  {
-   "id": "DP053",
-   "procedure_kubun": "I000/I001",
-   "procedure_codes": [],
-   "procedure_name": "う蝕処置及び歯髄保護処置",
-   "required_diseases": [],
-   "forbidden_diseases": [
-    "脱離"
-   ],
-   "relation": "不適応",
-   "source": "情提 う蝕処置及び歯髄保護処置（事例85）",
-   "confidence": "high",
-   "severity": "warning",
-   "requires_dentist_review": true,
-   "needs_code_mapping": true,
-   "note": "原則として「脱離」の病名のみではう蝕処置又は歯髄保護処置の算定を認めない。"
-  },
-  {
-   "id": "DP054",
-   "procedure_kubun": "I000-2",
-   "procedure_codes": [],
-   "procedure_name": "咬合調整",
-   "required_diseases": [
-    "咬合性外傷"
-   ],
-   "forbidden_diseases": [],
-   "relation": "適応",
-   "source": "情提 咬合調整（事例14）",
-   "confidence": "high",
-   "severity": "warning",
-   "requires_dentist_review": true,
-   "needs_code_mapping": true,
-   "note": "原則として画像診断の算定がない「咬合性外傷」病名での歯冠形態修正による咬合調整を認める。"
-  },
-  {
-   "id": "DP055",
-   "procedure_kubun": "I000-2",
-   "procedure_codes": [],
-   "procedure_name": "咬合調整",
-   "required_diseases": [
-    "P"
-   ],
-   "forbidden_diseases": [],
-   "relation": "適応",
-   "source": "情提 咬合調整④（事例86）",
-   "confidence": "medium",
-   "severity": "warning",
-   "requires_dentist_review": true,
-   "needs_code_mapping": true,
-   "note": "原則として「P」病名で、歯周病検査の算定がない歯周炎に対する咬合調整を認める。"
-  },
-  {
    "id": "DP056",
    "procedure_kubun": "I000-2",
    "procedure_codes": [],
@@ -1118,93 +949,6 @@
    "requires_dentist_review": true,
    "needs_code_mapping": true,
    "note": "原則として「転位歯」病名で歯冠形態修正を行った場合の咬合調整を認める。"
-  },
-  {
-   "id": "DP057",
-   "procedure_kubun": "I002",
-   "procedure_codes": [],
-   "procedure_name": "知覚過敏処置",
-   "required_diseases": [],
-   "forbidden_diseases": [
-    "C（う蝕）"
-   ],
-   "relation": "不適応",
-   "source": "情提 知覚過敏処置③（事例96）",
-   "confidence": "high",
-   "severity": "warning",
-   "requires_dentist_review": true,
-   "needs_code_mapping": true,
-   "note": "原則として「う蝕（C）」病名では知覚過敏処置の算定を認めない。"
-  },
-  {
-   "id": "DP058",
-   "procedure_kubun": "I002-2",
-   "procedure_codes": [],
-   "procedure_name": "う蝕薬物塗布処置",
-   "required_diseases": [
-    "C（う蝕）"
-   ],
-   "forbidden_diseases": [
-    "C以外の傷病名"
-   ],
-   "relation": "不適応",
-   "source": "情提 う蝕薬物塗布処置③（事例97）",
-   "confidence": "high",
-   "severity": "warning",
-   "requires_dentist_review": true,
-   "needs_code_mapping": true,
-   "note": "原則として「う蝕（C）」以外の傷病名ではう蝕薬物塗布処置の算定を認めない。"
-  },
-  {
-   "id": "DP059",
-   "procedure_kubun": "I004",
-   "procedure_codes": [],
-   "procedure_name": "歯髄切断",
-   "required_diseases": [
-    "Pul（歯髄炎）"
-   ],
-   "forbidden_diseases": [],
-   "relation": "適応",
-   "source": "情提 歯髄切断（事例102）",
-   "confidence": "high",
-   "severity": "warning",
-   "requires_dentist_review": true,
-   "needs_code_mapping": true,
-   "note": "原則として「歯髄炎（Pul）」病名で歯髄切断の算定を認める。"
-  },
-  {
-   "id": "DP062",
-   "procedure_kubun": "I006",
-   "procedure_codes": [],
-   "procedure_name": "感染根管処置",
-   "required_diseases": [
-    "Puエシ（歯髄壊死）"
-   ],
-   "forbidden_diseases": [],
-   "relation": "適応",
-   "source": "情提 感染根管処置②（事例107）",
-   "confidence": "high",
-   "severity": "warning",
-   "requires_dentist_review": true,
-   "needs_code_mapping": true,
-   "note": "原則として「歯髄壊死（Puエシ）」病名で感染根管処置の算定を認める。"
-  },
-  {
-   "id": "DP063",
-   "procedure_kubun": "I006",
-   "procedure_codes": [],
-   "procedure_name": "感染根管処置",
-   "required_diseases": [
-    "Puエソ（歯髄壊疽）"
-   ],
-   "forbidden_diseases": [],
-   "relation": "適応",
-   "source": "情提 感染根管処置③（事例108）",
-   "confidence": "high",
-   "severity": "warning",
-   "requires_dentist_review": true,
-   "needs_code_mapping": true,
-   "note": "原則として「歯髄壊疽（Puエソ）」病名で感染根管処置の算定を認める。"
   },
   {
    "id": "DP064",
@@ -1241,24 +985,6 @@
    "note": "原則として同一診療月で同一歯に「P急発」病名で歯周病処置のみを行い後日抜歯に至った場合、当該歯周病処置を認める。"
   },
   {
-   "id": "DP066",
-   "procedure_kubun": "I011-2",
-   "procedure_codes": [],
-   "procedure_name": "歯周病安定期治療",
-   "required_diseases": [
-    "P"
-   ],
-   "forbidden_diseases": [],
-   "relation": "不適応",
-   "source": "情提 歯周病安定期治療（事例52）",
-   "confidence": "medium",
-   "severity": "warning",
-   "requires_dentist_review": true,
-   "needs_code_mapping": true,
-   "needs_verification": true,
-   "note": "原則として「P」病名でスケーリング（再スケーリング含む）のみを実施した場合の歯周病安定期治療は認めない。R8でSPT・P重防が『歯周病継続支援治療』に再編されたため要確認。"
-  },
-  {
    "id": "DP067",
    "procedure_kubun": "I014",
    "procedure_codes": [],
@@ -1274,40 +1000,6 @@
    "requires_dentist_review": true,
    "needs_code_mapping": true,
    "note": "原則として外傷による歯の亜脱臼の場合は「亜脱臼」又は「歯の亜脱臼」病名で「I014 暫間固定 2 困難なもの」を認める。"
-  },
-  {
-   "id": "DP068",
-   "procedure_kubun": "I014",
-   "procedure_codes": [],
-   "procedure_name": "暫間固定（困難なもの）",
-   "required_diseases": [],
-   "forbidden_diseases": [
-    "FrT（歯の破折）"
-   ],
-   "relation": "不適応",
-   "source": "情提 暫間固定④（事例198）",
-   "confidence": "medium",
-   "severity": "warning",
-   "requires_dentist_review": true,
-   "needs_code_mapping": true,
-   "note": "原則として「歯の破折（FrT）」病名では「I014 暫間固定 2 困難なもの」を認めない。"
-  },
-  {
-   "id": "DP069",
-   "procedure_kubun": "I014",
-   "procedure_codes": [],
-   "procedure_name": "暫間固定（困難なもの）",
-   "required_diseases": [
-    "歯槽骨骨折"
-   ],
-   "forbidden_diseases": [],
-   "relation": "適応",
-   "source": "情提 暫間固定⑤（事例233）",
-   "confidence": "high",
-   "severity": "warning",
-   "requires_dentist_review": true,
-   "needs_code_mapping": true,
-   "note": "原則として「歯槽骨骨折」病名で「I014 暫間固定 2 困難なもの」を認める。"
   },
   {
    "id": "DP070",
@@ -1346,23 +1038,6 @@
    "note": "原則として「後出血」病名で、印象採得のない場合の止血シーネを認める。"
   },
   {
-   "id": "DP072",
-   "procedure_kubun": "I017-2",
-   "procedure_codes": [],
-   "procedure_name": "口腔内装置修理",
-   "required_diseases": [
-    "ハセツ"
-   ],
-   "forbidden_diseases": [],
-   "relation": "不適応",
-   "source": "情提 口腔内装置修理（事例53）",
-   "confidence": "high",
-   "severity": "warning",
-   "requires_dentist_review": true,
-   "needs_code_mapping": true,
-   "note": "原則として口腔内装置に係る「ハセツ」病名がない場合は「I017-2 2 口腔内装置修理」を認めない。"
-  },
-  {
    "id": "DP073",
    "procedure_kubun": "I022",
    "procedure_codes": [],
@@ -1397,40 +1072,6 @@
    "note": "原則として「P急発」病名で機械的歯面清掃処置を認める。"
   },
   {
-   "id": "DP075",
-   "procedure_kubun": "M009",
-   "procedure_codes": [],
-   "procedure_name": "充填",
-   "required_diseases": [],
-   "forbidden_diseases": [
-    "脱離"
-   ],
-   "relation": "不適応",
-   "source": "情提 充填（事例169）",
-   "confidence": "high",
-   "severity": "warning",
-   "requires_dentist_review": true,
-   "needs_code_mapping": true,
-   "note": "原則として「脱離」の病名のみでは充填の算定を認めない。"
-  },
-  {
-   "id": "DP076",
-   "procedure_kubun": "M009",
-   "procedure_codes": [],
-   "procedure_name": "充填",
-   "required_diseases": [],
-   "forbidden_diseases": [
-    "疑い病名"
-   ],
-   "relation": "不適応",
-   "source": "情提 充填②（事例170）",
-   "confidence": "high",
-   "severity": "warning",
-   "requires_dentist_review": true,
-   "needs_code_mapping": true,
-   "note": "原則として「疑い」の病名では充填の算定を認めない。"
-  },
-  {
    "id": "DP077",
    "procedure_kubun": "M029",
    "procedure_codes": [],
@@ -1446,99 +1087,6 @@
    "requires_dentist_review": true,
    "needs_code_mapping": true,
    "note": "原則として「口腔褥瘡性潰瘍（Dul）」病名では有床義歯修理を認めない。"
-  },
-  {
-   "id": "DP078",
-   "procedure_kubun": "M030",
-   "procedure_codes": [],
-   "procedure_name": "有床義歯内面適合法",
-   "required_diseases": [],
-   "forbidden_diseases": [
-    "義歯ハソン",
-    "低位咬合"
-   ],
-   "relation": "不適応",
-   "source": "情提 有床義歯内面適合法（事例176・177）",
-   "confidence": "high",
-   "severity": "warning",
-   "requires_dentist_review": true,
-   "needs_code_mapping": true,
-   "note": "原則として「義歯ハソン」病名・「低位咬合」病名では有床義歯内面適合法を認めない。"
-  },
-  {
-   "id": "DP079",
-   "procedure_kubun": "J000",
-   "procedure_codes": [],
-   "procedure_name": "抜歯手術 4 埋伏歯",
-   "required_diseases": [
-    "HIT（水平埋伏智歯）等"
-   ],
-   "forbidden_diseases": [
-    "Perico（智歯周囲炎）単独"
-   ],
-   "relation": "不適応",
-   "source": "情提 抜歯手術（埋伏歯）（事例28）",
-   "confidence": "high",
-   "severity": "warning",
-   "requires_dentist_review": true,
-   "needs_code_mapping": true,
-   "note": "原則として「智歯周囲炎（Perico）」病名のみでは「J000 抜歯手術 4 埋伏歯」を認めない（ 埋伏の病名が必要）。"
-  },
-  {
-   "id": "DP080",
-   "procedure_kubun": "J000",
-   "procedure_codes": [],
-   "procedure_name": "抜歯手術",
-   "required_diseases": [],
-   "forbidden_diseases": [
-    "G（歯肉炎）"
-   ],
-   "relation": "不適応",
-   "source": "情提 抜歯手術④（事例130）",
-   "confidence": "high",
-   "severity": "warning",
-   "requires_dentist_review": true,
-   "needs_code_mapping": true,
-   "note": "原則として「G」病名では抜歯手術を認めない。"
-  },
-  {
-   "id": "DP081",
-   "procedure_kubun": "J000",
-   "procedure_codes": [],
-   "procedure_name": "抜歯手術",
-   "required_diseases": [],
-   "forbidden_diseases": [
-    "GA（歯肉膿瘍）"
-   ],
-   "relation": "不適応",
-   "source": "情提 抜歯手術⑥（事例132）",
-   "confidence": "high",
-   "severity": "warning",
-   "requires_dentist_review": true,
-   "needs_code_mapping": true,
-   "note": "原則として「歯肉膿瘍（GA）」病名では抜歯手術を認めない。"
-  },
-  {
-   "id": "DP082",
-   "procedure_kubun": "J000",
-   "procedure_codes": [],
-   "procedure_name": "抜歯手術（難抜歯加算）",
-   "required_diseases": [
-    "P",
-    "P急発",
-    "HRT",
-    "HET",
-    "矮小歯",
-    "C4"
-   ],
-   "forbidden_diseases": [],
-   "relation": "適応",
-   "source": "情提 抜歯手術（難抜歯加算）（事例45・235・236・237・238・239）",
-   "confidence": "high",
-   "severity": "warning",
-   "requires_dentist_review": true,
-   "needs_code_mapping": true,
-   "note": "原則として「P」「P急発」「半埋伏歯（HRT）」「水平智歯（HET）」「矮小歯」「残根（C4）」病名で難抜歯加算を認める（歯根肥大・骨癒着・歯根彎曲等で骨開削等を行う場合）。"
   },
   {
    "id": "DP083",
@@ -1558,25 +1106,6 @@
    "note": "原則として「根尖性歯周炎（Per）」「歯の破折（FrT）」病名でヘミセクション（分割抜歯）を認める。"
   },
   {
-   "id": "DP084",
-   "procedure_kubun": "J003",
-   "procedure_codes": [],
-   "procedure_name": "歯根嚢胞摘出手術",
-   "required_diseases": [
-    "WZ（歯根嚢胞）"
-   ],
-   "forbidden_diseases": [
-    "Per単独"
-   ],
-   "relation": "不適応",
-   "source": "情提 歯根嚢胞摘出手術（事例139）",
-   "confidence": "high",
-   "severity": "warning",
-   "requires_dentist_review": true,
-   "needs_code_mapping": true,
-   "note": "原則として「根尖性歯周炎（Per）」病名のみでは歯根嚢胞摘出手術を認めない（ 嚢胞病名が必要）。"
-  },
-  {
    "id": "DP085",
    "procedure_kubun": "J013",
    "procedure_codes": [],
@@ -1592,40 +1121,6 @@
    "requires_dentist_review": true,
    "needs_code_mapping": true,
    "note": "原則として「萌出性歯肉炎」「智歯周囲炎（Perico）」病名で「J013 口腔内消炎手術 1 智歯周囲炎の歯肉弁切除等」を認める。"
-  },
-  {
-   "id": "DP086",
-   "procedure_kubun": "J027",
-   "procedure_codes": [],
-   "procedure_name": "頬、口唇、舌小帯形成術",
-   "required_diseases": [],
-   "forbidden_diseases": [
-    "Perico（智歯周囲炎）"
-   ],
-   "relation": "不適応",
-   "source": "情提 頬、口唇、舌小帯形成術（事例146）",
-   "confidence": "high",
-   "severity": "warning",
-   "requires_dentist_review": true,
-   "needs_code_mapping": true,
-   "note": "原則として「智歯周囲炎（Perico）」病名では「頬、口唇、舌小帯形成術」を認めない。"
-  },
-  {
-   "id": "DP087",
-   "procedure_kubun": "J047",
-   "procedure_codes": [],
-   "procedure_name": "腐骨除去手術 1 歯槽部に限局するもの",
-   "required_diseases": [],
-   "forbidden_diseases": [
-    "エプーリス"
-   ],
-   "relation": "不適応",
-   "source": "情提 腐骨除去手術（事例149）",
-   "confidence": "high",
-   "severity": "warning",
-   "requires_dentist_review": true,
-   "needs_code_mapping": true,
-   "note": "原則として「エプーリス」病名では「J047 腐骨除去手術 1 歯槽部に限局するもの」を認めない。"
   },
   {
    "id": "DP088",
@@ -1645,42 +1140,6 @@
    "note": "原則として「骨髄炎」病名で腐骨除去手術を認める。"
   },
   {
-   "id": "DP089",
-   "procedure_kubun": "D001",
-   "procedure_codes": [],
-   "procedure_name": "細菌簡易培養検査",
-   "required_diseases": [
-    "Puエソ（歯髄壊疽）"
-   ],
-   "forbidden_diseases": [],
-   "relation": "適応",
-   "source": "情提 細菌簡易培養検査（事例65）",
-   "confidence": "high",
-   "severity": "warning",
-   "requires_dentist_review": true,
-   "needs_code_mapping": true,
-   "note": "原則として「歯髄壊疽（Puエソ）」病名で細菌簡易培養検査を認める。"
-  },
-  {
-   "id": "DP090",
-   "procedure_kubun": "D002",
-   "procedure_codes": [],
-   "procedure_name": "歯周病検査",
-   "required_diseases": [
-    "P/G"
-   ],
-   "forbidden_diseases": [
-    "ZS（歯石沈着症）単独"
-   ],
-   "relation": "不適応",
-   "source": "情提 歯周病検査（事例13）",
-   "confidence": "high",
-   "severity": "warning",
-   "requires_dentist_review": true,
-   "needs_code_mapping": true,
-   "note": "原則として「歯石沈着症（ZS）」病名のみでは歯周病検査を認めない。"
-  },
-  {
    "id": "DP091",
    "procedure_kubun": "E000",
    "procedure_codes": [],
@@ -1696,41 +1155,6 @@
    "requires_dentist_review": true,
    "needs_code_mapping": true,
    "note": "原則として「上顎洞炎」病名で歯科エックス線撮影（全顎撮影以外の場合）を認める。"
-  },
-  {
-   "id": "DP092",
-   "procedure_kubun": "E000",
-   "procedure_codes": [],
-   "procedure_name": "歯科パノラマ断層撮影",
-   "required_diseases": [],
-   "forbidden_diseases": [
-    "処置・手術算定なしの複数回撮影"
-   ],
-   "relation": "不適応",
-   "source": "情提 写真診断⑦（事例72）",
-   "confidence": "medium",
-   "severity": "warning",
-   "requires_dentist_review": true,
-   "needs_code_mapping": true,
-   "note": "原則として処置又は手術の算定がない、同月又は連月の複数回の歯科パノラマ断層撮影は認めない。"
-  },
-  {
-   "id": "DP093",
-   "procedure_kubun": "K000",
-   "procedure_codes": [],
-   "procedure_name": "伝達麻酔",
-   "required_diseases": [
-    "P",
-    "AA（歯槽膿瘍）"
-   ],
-   "forbidden_diseases": [],
-   "relation": "適応",
-   "source": "情提 伝達麻酔①⑤（事例49・159）",
-   "confidence": "high",
-   "severity": "warning",
-   "requires_dentist_review": true,
-   "needs_code_mapping": true,
-   "note": "原則として下顎臼歯部の「P」病名の抜歯手術や「歯槽膿瘍（AA）」の口腔内消炎手術を行うにあたっての伝達麻酔を認める。"
   },
   {
    "id": "DP094",

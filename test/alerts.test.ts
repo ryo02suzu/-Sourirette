@@ -106,7 +106,7 @@ const cfgName: AlertConfig = { rulesDb, codeToKubun, diseaseNameToCodes };
 const G_CODE = diseaseNameToCodes.get("歯肉炎")![0]!; // 和名→コード
 const BATSUSHI = [...codeToKubun].find(([, k]) => k === "J000")![0]!; // 抜歯手術 = 区分 J000
 
-test("DP080(追補): 和名「歯肉炎」で抜歯手術 → 不適応warningが発火（和名解決）", () => {
+test("和名解決: 和名「歯肉炎」で抜歯手術 → 不適応warningが発火（傷病名マスタ和名で解決）", () => {
   const alerts = evaluateAlerts({ procedureCodes: [BATSUSHI], diseaseCodes: [G_CODE] }, cfgName);
   assert.ok(alerts.some((a) => a.category === "diagnosis_procedure" && a.title.includes("不適応") && a.diseaseCode === G_CODE));
 });
