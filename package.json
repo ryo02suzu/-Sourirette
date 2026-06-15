@@ -12,7 +12,8 @@
     "serve": "tsc && node dist/src/server.js",
     "batch": "tsc && node dist/src/batch-cli.js",
     "shiken": "tsc && node dist/src/shiken-cli.js",
-    "verify:plan": "tsc && node dist/src/verify-plan-cli.js"
+    "verify:plan": "tsc && node dist/src/verify-plan-cli.js",
+    "verify:reconcile": "tsc && node dist/src/verify-reconcile-cli.js"
   },
   "engines": {
     "node": ">=22"
