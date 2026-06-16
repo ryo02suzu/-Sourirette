@@ -59,8 +59,21 @@ export default function App() {
   const [perioImport, setPerioImport] = useState<{ text: string; nonce: number } | null>(null);
   /** コマンドパレットから患者を開く */
   const [focusPatient, setFocusPatient] = useState<{ id: string; nonce: number } | null>(null);
+  /** 診療画面で開いている患者（予約・患者一覧から切替）。既定は田中花子(p2) */
+  const [chartPatient, setChartPatient] = useState<{ id: string; nonce: number }>({ id: "p2", nonce: 0 });
   /** 届出済みの施設基準（設定画面 ⇄ 算定エンジン連動） */
   const [facilityStandards, setFacilityStandards] = useState<string[]>([]);
+
+  const clinicalPatient = useMemo(
+    () => allPatients.find((p) => p.id === chartPatient.id) ?? allPatients.find((p) => p.id === "p2")!,
+    [chartPatient.id],
+  );
+
+  /** 患者のカルテを開く（予約・受付・一覧の共通動線）。id 省略時は現在の患者のまま画面だけ切替 */
+  const openPatientChart = (id?: string) => {
+    if (id && allPatients.some((p) => p.id === id)) setChartPatient({ id, nonce: Date.now() });
+    setScreen("clinical");
+  };
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -82,14 +95,11 @@ export default function App() {
         run: () => setScreen(n.key),
       })),
       ...allPatients.map((p) => ({
-        group: "患者を開く",
+        group: "カルテを開く",
         label: `${p.name}`,
-        icon: "👤",
+        icon: "🦷",
         hint: `${p.kana} ・ ${p.chartNo}`,
-        run: () => {
-          setFocusPatient({ id: p.id, nonce: Date.now() });
-          setScreen("patients");
-        },
+        run: () => openPatientChart(p.id),
       })),
     ],
     [],
@@ -133,7 +143,7 @@ export default function App() {
 
         <div className="main">
           <header className="topbar">
-            <h1>{TITLES[screen]}</h1>
+            <h1>{screen === "clinical" ? `診療 — ${clinicalPatient.name}` : TITLES[screen]}</h1>
             <span className="date">2026年6月12日（金）</span>
             <div className="right">
               <button type="button" className="btn sm" onClick={() => setCti(true)}>📞 CTIデモ</button>
@@ -144,9 +154,9 @@ export default function App() {
           {/* 全画面をマウントしたまま表示切替（入力途中の状態を失わない） */}
           <main className="content">
             <div style={show("home")}><TodayBoard onOpenChart={() => setScreen("clinical")} onOpenCheckout={() => setScreen("checkout")} /></div>
-            <div style={show("appointments")}><AppointmentsScreen /></div>
-            <div style={show("patients")}><PatientsScreen onOpenChart={() => setScreen("clinical")} focus={focusPatient} /></div>
-            <div style={show("clinical")}><ClinicalScreen perioImport={perioImport} facilityStandards={facilityStandards} /></div>
+            <div style={show("appointments")}><AppointmentsScreen onOpenPatientChart={openPatientChart} /></div>
+            <div style={show("patients")}><PatientsScreen onOpenChart={openPatientChart} focus={focusPatient} /></div>
+            <div style={show("clinical")}><ClinicalScreen patient={clinicalPatient} patientNonce={chartPatient.nonce} perioImport={perioImport} facilityStandards={facilityStandards} /></div>
             <div style={show("perio")}>
               <PerioScreen
                 onTransfer={(text) => {

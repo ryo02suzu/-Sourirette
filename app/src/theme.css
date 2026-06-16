@@ -669,3 +669,29 @@ button:focus-visible, .tooth-g:focus-visible { outline: 2px solid var(--brand); 
 }
 .switch.on { background: var(--brand); }
 .switch.on .knob { left: 22px; }
+
+/* ===== 予約: 現在時刻ライン（Googleカレンダー風・赤・毎分更新） ===== */
+.apo-now-line {
+  position: absolute; left: 0; right: 0; height: 0;
+  border-top: 2px solid #ea4335; z-index: 5; pointer-events: none;
+}
+.apo-now-dot {
+  position: absolute; left: -4px; top: -5px; width: 9px; height: 9px;
+  border-radius: 50%; background: #ea4335; box-shadow: 0 0 0 2px rgba(234, 67, 53, 0.18);
+}
+.apo-now-time {
+  position: absolute; right: 5px; transform: translateY(-50%);
+  font-family: "Inter", sans-serif; font-size: 10px; font-weight: 800; line-height: 1;
+  color: #fff; background: #ea4335; border-radius: 4px; padding: 2px 5px; z-index: 6; pointer-events: none;
+}
+.apo-block { cursor: pointer; }
+
+/* ===== カルテ見やすさ改善（患者バナー固定・余白拡大・SOAP拡大） ===== */
+.patient-banner { position: sticky; top: 0; z-index: 20; }
+.patient-banner .pname { font-size: 17px; }
+.patient-banner .meta { font-size: 12.5px; margin-top: 2px; }
+.clinical { gap: 18px; }
+.card .card-head h2 { font-size: 14px; }
+.soap-field { margin-bottom: 14px; }
+.soap-field textarea { min-height: 72px; font-size: 13.5px; line-height: 1.7; padding: 10px 13px; }
+.claim-table td, .claim-table th { padding-top: 7px; padding-bottom: 7px; }
