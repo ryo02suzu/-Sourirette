@@ -1,0 +1,140 @@
+/**
+ * 電子点数表（歯科）ローダーのテスト。実データ（data/tensuhyo/）で取込を検証する。
+ */
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { join, dirname } from "node:path";
+import {
+  buildInclusions,
+  createInclusionGroupRule,
+  decodeTensuhyo,
+  HAIHAN_TABLE_SCOPE,
+  haihanToMutualExclusions,
+  parseHaihan,
+  parseHojoMasterGroups,
+  parseHokatsuChildren,
+  parseSanteiKaisu,
+  santeiKaisuToFrequencyLimits,
+} from "../src/billing/tensuhyo-loader.js";
+import { CalculationEngine, type CalculationContext } from "../src/billing/engine.js";
+import { InMemoryMaster } from "../src/billing/master.js";
+import { createDataDrivenRules } from "../src/billing/rule-tables.js";
+
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
+const load = (rel: string) => decodeTensuhyo(new Uint8Array(readFileSync(join(ROOT, rel))));
+
+const ASOF = "2026-06-12"; // 令和8年6月時点で有効な行のみ
+
+const santeiRows = parseSanteiKaisu(load("data/tensuhyo/04_santei_kaisu.csv"));
+const haihanRows = parseHaihan(load("data/tensuhyo/03-1_haihan.csv"));
+
+test("算定回数: 実データを2,000行以上パースできる", () => {
+  assert.ok(santeiRows.length > 2000, `rows=${santeiRows.length}`);
+});
+
+test("算定回数→回数制限: 歯科初診料（301000110）は月1回として取り込まれる", () => {
+  const limits = santeiKaisuToFrequencyLimits(santeiRows, ASOF);
+  const shoshin = limits.find((l) => l.code === "301000110" && l.per === "month");
+  assert.ok(shoshin, "初診料の月回数制限が見つからない");
+  assert.equal(shoshin!.maxCount, 1);
+  // 時間ベースのみ＝月/日に正規化されている
+  assert.ok(limits.every((l) => l.per === "month" || l.per === "day"));
+});
+
+test("背反→併算定不可: 03-1は同日scope・対称重複を排除する", () => {
+  const ex = haihanToMutualExclusions(haihanRows, HAIHAN_TABLE_SCOPE["03-1"] as "same-day", ASOF);
+  assert.ok(ex.length > 100, `pairs=${ex.length}`);
+  // 03-1 は「1日につき背反」＝同日
+  assert.ok(ex.every((e) => e.scope === "same-day"));
+  // 無順序ペアで重複排除されている（codeA < codeB 正規化）
+  assert.ok(ex.every((e) => e.codeA < e.codeB));
+  const keys = new Set(ex.map((e) => `${e.codeA}/${e.codeB}`));
+  assert.equal(keys.size, ex.length, "重複ペアが残っている");
+});
+
+// CSV由来の既知ケースを固定（改定追補でCSV形式がズレたら大声で落ちる）。
+// 背反・回数は提出をブロックする側なので、パースズレ＝正しいレセの誤弾きになる。
+test("背反(既知ロック): 03-1 同日に 歯科初診料×開放型病院共同指導料1 が存在する", () => {
+  const ex = haihanToMutualExclusions(haihanRows, "same-day", ASOF);
+  const hit = ex.find((e) => e.codeA === "301000110" && e.codeB === "302002210");
+  assert.ok(hit, "既知の同日背反（301000110×302002210）が消えた＝CSVパースの系統ズレを疑う");
+  assert.equal(hit!.scope, "same-day");
+});
+
+test("背反(既知ロック): 03-2 同月に 歯科初診料×歯科矯正管理料 が存在する", () => {
+  const ex2 = haihanToMutualExclusions(parseHaihan(load("data/tensuhyo/03-2_haihan.csv")), HAIHAN_TABLE_SCOPE["03-2"] as "same-month", ASOF);
+  assert.ok(ex2.length > 100, `pairs=${ex2.length}`);
+  assert.ok(ex2.every((e) => e.scope === "same-month"));
+  const hit = ex2.find((e) => e.codeA === "301000110" && e.codeB === "314000310");
+  assert.ok(hit, "既知の同月背反（301000110×314000310）が消えた＝03-2パースの系統ズレを疑う");
+});
+
+test("包括→包括ルール: 抜髄が根管貼薬を包括する（仕様の例を実データで再現）", () => {
+  const parents = parseHojoMasterGroups(load("data/tensuhyo/01_hojo_master.csv"), ASOF);
+  const children = parseHokatsuChildren(load("data/tensuhyo/02_hokatsu.csv"), ASOF);
+  const inclusions = buildInclusions(parents, children);
+  // 抜髄（単根管）309002110 は 根管貼薬（単根管）309003310 を包括する（グループ I005001）
+  const found = inclusions.find((i) => i.includingCode === "309002110" && i.includedCode === "309003310");
+  assert.ok(found, "抜髄→根管貼薬の包括が見つからない");
+  assert.ok(inclusions.length > 100, `inclusions=${inclusions.length}`);
+});
+
+test("実データ→エンジン: 包括が発火する（抜髄と同日に根管貼薬を算定でエラー）", () => {
+  const parents = parseHojoMasterGroups(load("data/tensuhyo/01_hojo_master.csv"), ASOF);
+  const children = parseHokatsuChildren(load("data/tensuhyo/02_hokatsu.csv"), ASOF);
+  const inclusions = buildInclusions(parents, children);
+  const engine = new CalculationEngine(createDataDrivenRules({ inclusions }, "2024-04-01"));
+  const ctx: CalculationContext = {
+    patient: { id: "p", birthDate: "1980-01-01", sex: "F" },
+    visit: { id: "v", patientId: "p", visitDate: ASOF, visitType: "first" },
+    procedures: [
+      { procedureCode: "309002110", quantity: 1 }, // 抜髄（単根管）
+      { procedureCode: "309003310", quantity: 1 }, // 根管貼薬（単根管）← 包括され算定不可
+    ],
+    diagnoses: [],
+    history: { countInMonth: () => 0 },
+    facility: { has: () => false },
+    master: new InMemoryMaster(),
+  };
+  const result = engine.calculate(ctx);
+  assert.ok(result.issues.some((i) => i.severity === "error" && i.procedureCode === "309003310"));
+});
+
+test("包括グループ判定型ルール: ペア展開せず索引で発火（抜髄＋根管貼薬）", () => {
+  const parents = parseHojoMasterGroups(load("data/tensuhyo/01_hojo_master.csv"), ASOF);
+  const children = parseHokatsuChildren(load("data/tensuhyo/02_hokatsu.csv"), ASOF);
+  const engine = new CalculationEngine([createInclusionGroupRule(parents, children, "2024-04-01")]);
+  const base = {
+    patient: { id: "p", birthDate: "1980-01-01", sex: "F" as const },
+    visit: { id: "v", patientId: "p", visitDate: ASOF, visitType: "first" as const },
+    diagnoses: [],
+    history: { countInMonth: () => 0 },
+    facility: { has: () => false },
+    master: new InMemoryMaster(),
+  };
+  // 抜髄＋根管貼薬 同日 → 根管貼薬が包括されエラー
+  const ng = engine.calculate({ ...base, procedures: [{ procedureCode: "309002110", quantity: 1 }, { procedureCode: "309003310", quantity: 1 }] });
+  assert.ok(ng.issues.some((i) => i.severity === "error" && i.procedureCode === "309003310"));
+  // 根管貼薬だけ（親なし）→ 指摘なし
+  const ok = engine.calculate({ ...base, procedures: [{ procedureCode: "309003310", quantity: 1 }] });
+  assert.equal(ok.issues.length, 0);
+});
+
+test("実データ→エンジン: 回数制限が実際に発火する（初診料を月2回でエラー）", () => {
+  const limits = santeiKaisuToFrequencyLimits(santeiRows, ASOF);
+  const engine = new CalculationEngine(createDataDrivenRules({ frequencyLimits: limits }, "2024-04-01"));
+  const ctx: CalculationContext = {
+    patient: { id: "p", birthDate: "1980-01-01", sex: "F" },
+    visit: { id: "v", patientId: "p", visitDate: ASOF, visitType: "first" },
+    procedures: [{ procedureCode: "301000110", quantity: 1 }],
+    diagnoses: [],
+    // 当月にすでに初診料1回算定済み → 当日もう1回で月2回＝上限超過
+    history: { countInMonth: (code) => (code === "301000110" ? 1 : 0) },
+    facility: { has: () => false },
+    master: new InMemoryMaster(),
+  };
+  const result = engine.calculate(ctx);
+  assert.ok(result.issues.some((i) => i.severity === "error" && i.procedureCode === "301000110"));
+});

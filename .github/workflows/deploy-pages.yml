@@ -1,0 +1,52 @@
+name: Deploy app to GitHub Pages
+
+# アプリ（app/）をビルドして GitHub Pages に公開する。
+# 公開後の URL: https://ryo02suzu.github.io/-Sourirette/
+# 算定サーバ(:8787)はPagesでは動かないため、アプリはデモ点数にフォールバックして表示する。
+
+on:
+  push:
+    branches: [main, claude/japanese-greeting-k6nuva]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install root deps (../src を app がビルド時に取り込むため)
+        run: npm ci
+      - name: Install app deps
+        run: npm ci
+        working-directory: app
+      - name: Build app
+        run: npm run build
+        working-directory: app
+      - uses: actions/configure-pages@v5
+        with:
+          enablement: true
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: app/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

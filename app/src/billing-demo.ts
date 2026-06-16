@@ -13,6 +13,7 @@ import {
 } from "../../src/billing/engine.js";
 import { InMemoryMaster } from "../../src/billing/master.js";
 import { createBasicVisitRule } from "../../src/billing/rules/basic-visit.js";
+import { createSiteDiagnosisRule } from "../../src/billing/rules/site-diagnosis.js";
 import type { Diagnosis, PerformedProcedure } from "../../src/domain/types.js";
 
 export const DEMO_CODES = {
@@ -136,6 +137,7 @@ const engine = new CalculationEngine([
   procedurePricingRule,
   dxTriangleRule,
   facilityBonusRule,
+  createSiteDiagnosisRule(SINCE), // 部位×病名 歯式突合（返戻・査定 #4）
 ]);
 const master = buildMaster();
 

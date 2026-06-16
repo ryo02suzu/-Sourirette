@@ -46,8 +46,10 @@ export function createBasicVisitRule(codes: BasicVisitCodes, validFrom: string, 
         });
       }
 
+      // 別表20: 初診=11 / 再診=12（入院外）
+      const category = ctx.visit.visitType === "first" ? "11" : "12";
       return {
-        lines: [{ procedureCode: code, name: row.name, points: row.points, quantity: 1 }],
+        lines: [{ procedureCode: code, name: row.name, points: row.points, quantity: 1, category }],
         issues,
       };
     },

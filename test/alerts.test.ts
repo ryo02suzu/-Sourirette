@@ -1,0 +1,147 @@
+/**
+ * 算定支援アラートエンジンのテスト（純関数）。
+ * 既存JSONの代表ルール DP001(抜髄×Per)・FS001(歯初診未届)・AT012(算定単位) で発火/非発火を検証。
+ */
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { join, dirname } from "node:path";
+import { parseRulesDb } from "../src/billing/rules-db-loader.js";
+import { buildCodeToKubun } from "../src/billing/betsu1-loader.js";
+import { decodeSjis } from "../src/billing/master-loader.js";
+import { buildDiseaseNameIndex, parseDiseaseMaster } from "../src/billing/disease-loader.js";
+import { evaluateAlerts, type AlertConfig } from "../src/alerts/engine.js";
+import { makeContextKey, type AlertInput } from "../src/alerts/types.js";
+
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
+const rulesDb = parseRulesDb(readFileSync(join(ROOT, "data/rules/santei-rules-R8.json"), "utf-8"));
+const codeToKubun = buildCodeToKubun(decodeSjis(new Uint8Array(readFileSync(join(ROOT, "data/masters/h_ALL20260611.csv")))));
+const cfg: AlertConfig = { rulesDb, codeToKubun };
+
+const BATSUZUI = "309002110"; // 抜髄（単根管）= 区分 I005
+const PER = "8832354"; // 急性根尖性歯周炎（Per）
+const PUL = "5220063"; // 歯髄炎（Pul）
+const SHOSHIN = "301000110"; // 歯科初診料 = 区分 A000
+
+test("DP001: 抜髄をPer病名で算定 → warning発火（不適応）", () => {
+  const input: AlertInput = { procedureCodes: [BATSUZUI], diseaseCodes: [PER] };
+  const alerts = evaluateAlerts(input, cfg);
+  const w = alerts.find((a) => a.ruleId === "DP001" && a.level === "warning");
+  assert.ok(w, "DP001の不適応warningが出ない");
+  assert.equal(w!.procedureCode, BATSUZUI);
+  assert.equal(w!.diseaseCode, PER);
+  assert.ok(w!.source.includes("情提")); // 根拠併記
+  assert.equal(w!.requiresDentistReview, true);
+});
+
+test("DP001: 抜髄をPul病名で算定 → 不適応は非発火（Perでないため）", () => {
+  const alerts = evaluateAlerts({ procedureCodes: [BATSUZUI], diseaseCodes: [PUL] }, cfg);
+  assert.ok(!alerts.some((a) => a.ruleId === "DP001" && a.title.includes("不適応")));
+});
+
+test("FS001: 歯初診 未届で初診料を算定 → error発火", () => {
+  const input: AlertInput = { procedureCodes: [SHOSHIN], diseaseCodes: [PUL], notifiedStandards: [] };
+  const alerts = evaluateAlerts(input, cfg);
+  const e = alerts.find((a) => a.ruleId === "FS001" && a.level === "error");
+  assert.ok(e, "歯初診未届のerrorが出ない");
+  assert.equal(e!.procedureCode, SHOSHIN);
+  assert.equal(e!.requiresDentistReview, false); // 客観的に黒
+});
+
+test("FS001: 歯初診 届出済みなら非発火", () => {
+  const alerts = evaluateAlerts({ procedureCodes: [SHOSHIN], diseaseCodes: [PUL], notifiedStandards: ["歯初診"] }, cfg);
+  assert.ok(!alerts.some((a) => a.ruleId === "FS001"));
+});
+
+test("施設基準: notifiedStandards未指定なら施設基準チェックしない（届出不明）", () => {
+  const alerts = evaluateAlerts({ procedureCodes: [SHOSHIN], diseaseCodes: [PUL] }, cfg);
+  assert.ok(!alerts.some((a) => a.category === "facility_standard"));
+});
+
+test("AT012: I000系（区分一致）を算定 → 算定単位proposalが発火", () => {
+  // 区分 I000 のコードを1つ拾う
+  const i000 = [...codeToKubun].find(([, k]) => k === "I000")?.[0];
+  assert.ok(i000, "区分I000のコードが見つからない");
+  const alerts = evaluateAlerts({ procedureCodes: [i000!], diseaseCodes: [PUL] }, cfg);
+  const p = alerts.find((a) => a.ruleId === "AT012" && a.level === "proposal");
+  assert.ok(p, "AT012(算定単位)のproposalが出ない");
+  assert.match(p!.message, /1歯/);
+});
+
+test("AT012: 無関係な区分（初診）では非発火", () => {
+  const alerts = evaluateAlerts({ procedureCodes: [SHOSHIN], diseaseCodes: [PUL] }, cfg);
+  assert.ok(!alerts.some((a) => a.ruleId === "AT012"));
+});
+
+test("年齢条件: 乳幼児加算(AT001)は提案しない（6歳未満でも自動算定が担当するため）", () => {
+  const under = evaluateAlerts({ procedureCodes: [SHOSHIN], diseaseCodes: [PUL], patientAge: 3 }, cfg);
+  assert.ok(!under.some((a) => a.ruleId === "AT001"), "自動算定対象の初診加算を提案している");
+});
+
+test("既読学習: 承認済みパターンは抑制される", () => {
+  const input: AlertInput = { procedureCodes: [BATSUZUI], diseaseCodes: [PER] };
+  const before = evaluateAlerts(input, cfg);
+  const dp001 = before.find((a) => a.ruleId === "DP001")!;
+  const acked = new Set([dp001.contextKey]);
+  const after = evaluateAlerts(input, { ...cfg, acknowledged: acked });
+  assert.ok(!after.some((a) => a.contextKey === dp001.contextKey), "既読パターンが抑制されていない");
+  // contextKey は (ruleId, 病名, 処置) で生成される
+  assert.equal(dp001.contextKey, makeContextKey("DP001", PER, BATSUZUI));
+});
+
+test("ブロックしない設計: errorでもアラートを返すだけ（例外を投げない）", () => {
+  assert.doesNotThrow(() => evaluateAlerts({ procedureCodes: [SHOSHIN], diseaseCodes: [PUL], notifiedStandards: [] }, cfg));
+});
+
+// --- R8追補（DP047-095/FS011-026/AT018-036）と和名解決・集約の検証 ---
+
+// 研究DBの和名トークン（"歯肉炎"等）解決のため、傷病名マスタの和名→コード索引を用意
+const diseaseNameToCodes = buildDiseaseNameIndex(
+  parseDiseaseMaster(decodeSjis(new Uint8Array(readFileSync(join(ROOT, "data/masters/b_20260601.txt"))))).concat(
+    parseDiseaseMaster(decodeSjis(new Uint8Array(readFileSync(join(ROOT, "data/masters/hb_20260601.txt"))))),
+  ),
+);
+const cfgName: AlertConfig = { rulesDb, codeToKubun, diseaseNameToCodes };
+const G_CODE = diseaseNameToCodes.get("歯肉炎")![0]!; // 和名→コード
+const BATSUSHI = [...codeToKubun].find(([, k]) => k === "J000")![0]!; // 抜歯手術 = 区分 J000
+
+test("和名解決: 和名「歯肉炎」で抜歯手術 → 不適応warningが発火（傷病名マスタ和名で解決）", () => {
+  const alerts = evaluateAlerts({ procedureCodes: [BATSUSHI], diseaseCodes: [G_CODE] }, cfgName);
+  assert.ok(alerts.some((a) => a.category === "diagnosis_procedure" && a.title.includes("不適応") && a.diseaseCode === G_CODE));
+});
+
+test("不適応の集約: 同一(処置×病名)は複数事例があっても1件だけ", () => {
+  const alerts = evaluateAlerts({ procedureCodes: [BATSUSHI], diseaseCodes: [G_CODE] }, cfgName);
+  const forbiddenForG = alerts.filter((a) => a.title.includes("不適応") && a.procedureCode === BATSUSHI && a.diseaseCode === G_CODE);
+  assert.equal(forbiddenForG.length, 1, "同一(処置×病名)の不適応が重複している");
+});
+
+test("適応事例から「対応病名なし」を出さない（適応≠必須。誤検知防止）", () => {
+  // 写真診断(E000)は上顎洞炎で認める適応事例があるが、別病名でも「対応病名なし」を出してはいけない
+  const e000 = [...codeToKubun].find(([, k]) => k === "E000")?.[0];
+  if (e000 === undefined) return;
+  const alerts = evaluateAlerts({ procedureCodes: [e000], diseaseCodes: [G_CODE] }, cfgName);
+  assert.ok(!alerts.some((a) => a.title.includes("対応病名なし")), "適応事例から必須病名を誤推定している");
+});
+
+test("正常レセプトはアラート0件（誤検知ゼロ）", () => {
+  // 初診料+写真診断、慢性歯周炎、3歳深夜（加算は自動算定されるので提案も出ない）
+  const alerts = evaluateAlerts(
+    { procedureCodes: [SHOSHIN, "305000110", "301001270"], diseaseCodes: [diseaseNameToCodes.get("慢性歯周炎")?.[0] ?? "8840351"], patientAge: 3, notifiedStandards: ["歯初診", "外安全", "外感染"] },
+    cfgName,
+  );
+  assert.equal(alerts.length, 0, `正常レセプトでアラートが出た: ${alerts.map((a) => a.ruleId).join(",")}`);
+});
+
+test("初診/再診の年齢・時間外加算は提案しない（自動算定が担当）", () => {
+  const alerts = evaluateAlerts({ procedureCodes: [SHOSHIN], diseaseCodes: [PUL], patientAge: 3 }, cfgName);
+  assert.ok(!alerts.some((a) => a.category === "age_time_site" && /A00[012]/.test(a.ruleId) === false && a.message.includes("乳幼児")), "自動算定済みの加算を提案している");
+  assert.ok(!alerts.some((a) => ["AT001", "AT002", "AT003", "AT018", "AT019", "AT020"].includes(a.ruleId)));
+});
+
+test("和名解決なしでも従来の略号トークンは解決される（後方互換）", () => {
+  // diseaseNameToCodes 無し設定でも DP001(抜髄×Per) は従来どおり発火
+  const alerts = evaluateAlerts({ procedureCodes: [BATSUZUI], diseaseCodes: [PER] }, cfg);
+  assert.ok(alerts.some((a) => a.ruleId === "DP001" && a.level === "warning"));
+});

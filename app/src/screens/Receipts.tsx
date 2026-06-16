@@ -1,17 +1,111 @@
 /** レセプト画面（月次）: 点検 → エラー解消 → UKE出力 → オンライン請求。 */
 import { useState } from "react";
 import { monthReceipts, receiptIssues } from "../data/mock.js";
+import { useToast } from "../components/toast.js";
+import { downloadUke, generateDemoUke } from "../uke-export.js";
+import {
+  checkHealth,
+  DEMO_ENCOUNTER,
+  downloadUkeBase64,
+  generateReceipt,
+  loadAcknowledgedAlerts,
+  type ServerAlert,
+  type ServerCommentCandidate,
+  type ServerValidationIssue,
+} from "../services/algorithm-api.js";
+import { AlertPanel } from "../components/AlertPanel.js";
 
 const AI_TEKIYO_DRAFT =
   "義歯不適合により疼痛著明、咀嚼困難を認めたため同月2回目の調整を実施。" +
   "右下臼歯部顎堤の骨吸収が顕著であり、リライニングでは対応困難と判断した。";
 
+/** 画面表示用に正規化した UKE 結果（サーバ実点数 / ブラウザ・デモ 共通） */
+interface DisplayUke {
+  source: string;
+  text: string;
+  recordCount: number;
+  byteLength: number;
+  totalPoints: number;
+  visitDays: number;
+  validation: ServerValidationIssue[];
+  submittable: boolean;
+  commentCandidates?: ServerCommentCandidate[];
+  algorithmIssues?: { severity: "error" | "warning"; message: string; procedureCode?: string }[];
+  alerts?: ServerAlert[];
+}
+
 export function ReceiptsScreen({ onOpenChart }: { onOpenChart(): void }) {
   const [openId, setOpenId] = useState<string | null>("r2");
   const [tekiyoDraft, setTekiyoDraft] = useState(false);
+  const [uke, setUke] = useState<DisplayUke | null>(null);
+  const [busy, setBusy] = useState(false);
+  const toast = useToast();
   const totalPoints = monthReceipts.reduce((s, r) => s + r.points, 0);
   const totalErrors = monthReceipts.reduce((s, r) => s + r.errors, 0);
   const totalWarnings = monthReceipts.reduce((s, r) => s + r.warnings, 0);
+
+  // 算定サーバ（実点数）で算定→UKE生成。未起動ならブラウザのデモ点数にフォールバック。
+  const handleServerExport = async () => {
+    if (totalErrors > 0) {
+      toast("エラー（提出ブロック）が残っています。解消してから出力してください", "error");
+      return;
+    }
+    setBusy(true);
+    try {
+      const health = await checkHealth();
+      if (!health.ok) {
+        toast("算定サーバ未起動。`npm run serve` で起動すると実点数で算定します。今回はデモ点数で出力します", "info");
+        return handleDemoExport();
+      }
+      // 既読（承認済み）アラートを渡して総量制御（次回から抑制）
+      const r = await generateReceipt({ ...DEMO_ENCOUNTER, acknowledgedAlerts: loadAcknowledgedAlerts() });
+      setUke({
+        source: "算定サーバ（公式マスタの実点数）",
+        text: r.recordsText,
+        recordCount: r.recordCount,
+        byteLength: r.byteLength,
+        totalPoints: r.totalPoints,
+        visitDays: r.visitDays,
+        validation: r.validation,
+        submittable: r.submittable,
+        commentCandidates: r.commentCandidates,
+        algorithmIssues: r.algorithmIssues,
+        alerts: r.alerts,
+      });
+      downloadUkeBase64(r.ukeBase64);
+      toast(
+        r.submittable
+          ? `実点数で RECEIPTS.UKE を生成（${r.totalPoints}点・${r.recordCount}レコード）。提出前自己点検OK`
+          : `UKEを生成しましたが受付不能の指摘があります（提出前に修正が必要）`,
+        r.submittable ? "success" : "error",
+      );
+    } catch (e) {
+      toast(`サーバ算定に失敗: ${e instanceof Error ? e.message : String(e)}`, "error");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // ブラウザ内のコアエンジン（⚠サンプル点数）でUKE生成
+  const handleDemoExport = () => {
+    try {
+      const result = generateDemoUke();
+      setUke({
+        source: "ブラウザ・デモ（⚠サンプル点数）",
+        text: result.text,
+        recordCount: result.recordCount,
+        byteLength: result.byteLength,
+        totalPoints: result.totalPoints,
+        visitDays: result.visitDays,
+        validation: result.validation,
+        submittable: result.submittable,
+      });
+      downloadUke(result.bytes);
+      toast(`デモ点数で RECEIPTS.UKE を生成（${result.recordCount}レコード）`, result.submittable ? "success" : "error");
+    } catch (e) {
+      toast(`UKE生成に失敗しました: ${e instanceof Error ? e.message : String(e)}`, "error");
+    }
+  };
 
   return (
     <div>
@@ -29,17 +123,89 @@ export function ReceiptsScreen({ onOpenChart }: { onOpenChart(): void }) {
             <button type="button" className="btn">一括チェックを再実行</button>
             <button
               type="button"
-              className="btn"
-              disabled
-              title="記録条件仕様（歯科用）の取込後に有効化されます（Phase 3）"
+              className="btn primary"
+              onClick={handleServerExport}
+              disabled={busy}
+              title="算定サーバ（npm run serve）で公式マスタの実点数で算定→記録条件仕様準拠のUKE生成→自己点検"
             >
-              UKEファイル出力
+              {busy ? "算定中…" : "実点数で算定・UKE出力"}
             </button>
-            <button type="button" className="btn primary" disabled title="エラー0件で有効化（オンライン請求は Phase 3）">
-              オンライン請求
+            <button
+              type="button"
+              className="btn"
+              onClick={handleDemoExport}
+              title="ブラウザ内のコアエンジン（⚠サンプル点数）でUKE生成"
+            >
+              デモ点数で出力
             </button>
           </div>
         </div>
+        {uke && (
+          <div className="card-body" style={{ borderTop: "1px solid var(--line)", background: "var(--surface-2)" }}>
+            <div className="muted" style={{ fontWeight: 700, marginBottom: 6 }}>
+              生成された RECEIPTS.UKE（{uke.recordCount}レコード / {uke.byteLength}バイト・Shift_JIS・末尾EOF付き）
+              <span className="chip" style={{ marginLeft: 8 }}>{uke.source}</span>
+            </div>
+            {uke.alerts && <AlertPanel alerts={uke.alerts} />}
+            <div className="tiny muted" style={{ marginBottom: 6 }}>
+              算定エンジンが確定した点数（合計 {uke.totalPoints} 点・診療実日数 {uke.visitDays} 日）を、月内の複数受診を
+              1枚に集約し（同一診療行為は算定日情報にマージ）、記録条件仕様（歯科用）令和8年6月版の
+              レコード定義どおりに直列化しています。
+            </div>
+            {uke.algorithmIssues && uke.algorithmIssues.length > 0 && (
+              <div style={{ marginBottom: 8 }}>
+                <div className="tiny" style={{ fontWeight: 700, color: "var(--error)", marginBottom: 2 }}>算定エンジンの指摘（公式ルール）</div>
+                <ul className="tiny" style={{ margin: 0, paddingLeft: 18 }}>
+                  {uke.algorithmIssues.map((i, k) => (
+                    <li key={k} style={{ color: i.severity === "error" ? "var(--error)" : "var(--warn)" }}>
+                      {i.severity === "error" ? "エラー" : "警告"}: {i.message}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {uke.commentCandidates && uke.commentCandidates.length > 0 && (
+              <div className="tiny muted" style={{ marginBottom: 6 }}>
+                ✦ 別表Ⅰ 摘要欄コメント候補 {uke.commentCandidates.length} 件（記載要否は条件を確認）:{" "}
+                {[...new Set(uke.commentCandidates.map((c) => c.displayText.slice(0, 16)))].slice(0, 3).join(" / ")}…
+              </div>
+            )}
+            <div
+              className="tiny"
+              style={{ marginBottom: 8, color: uke.submittable ? "var(--ok, #2a7)" : "var(--error)", fontWeight: 700 }}
+            >
+              {uke.submittable
+                ? `✓ 提出前自己点検（受付・事務点検ASP相当）に通りました（受付不能の指摘なし）`
+                : `⚠ 自己点検で受付不能の指摘があります`}
+            </div>
+            {uke.validation.length > 0 && (
+              <ul className="tiny" style={{ margin: "0 0 8px", paddingLeft: 18 }}>
+                {uke.validation.map((v, i) => (
+                  <li key={i} style={{ color: v.severity === "reject" ? "var(--error)" : "var(--warn)" }}>
+                    [{v.code}] {v.message}
+                    {v.receiptNo ? `（レセプト${v.receiptNo}）` : ""}
+                  </li>
+                ))}
+              </ul>
+            )}
+            <pre
+              style={{
+                margin: 0,
+                padding: "10px 12px",
+                background: "var(--surface)",
+                border: "1px solid var(--line)",
+                borderRadius: 6,
+                fontSize: 11.5,
+                lineHeight: 1.6,
+                overflowX: "auto",
+                whiteSpace: "pre",
+              }}
+            >
+              {uke.text}
+            </pre>
+          </div>
+        )}
+
         <table className="rece-table">
           <thead>
             <tr><th>患者</th><th>保険</th><th style={{ textAlign: "right" }}>点数</th><th>点検結果</th><th /></tr>

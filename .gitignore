@@ -1,3 +1,10 @@
 node_modules/
 dist/
 .env
+
+# 生成されるレセプト電算ファイル
+*.UKE
+RECEIPTS.UKE
+
+# バッチ出力
+out/

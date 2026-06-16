@@ -14,6 +14,7 @@
 | --- | --- |
 | [`docs/master-plan.md`](./docs/master-plan.md) | 全体設計書（要件・アーキテクチャ・データモデル・算定エンジン・ロードマップ） |
 | [`docs/regulatory-checklist.md`](./docs/regulatory-checklist.md) | 制度・法規制チェックリスト（電子保存3原則 / 3省2ガイドライン / レセ電算 / オン資・オン請） |
+| [`docs/commercialization-readiness.md`](./docs/commercialization-readiness.md) | 商用化レディネス判定（済 / 要コード / コード外の正直な区分） |
 
 ## UI（デモアプリ）
 
@@ -35,7 +36,7 @@ npm run dev      # → http://localhost:5173
 | 診療 | 歯式（オドントグラム）/ 傷病名 / SOAP / ✦AIアシスタント / 算定プレビュー＋処方監査（禁忌チェック） |
 | 歯周検査 | P検 4点法フルマウス入力・🎙音声入力デモ・コアエンジンによる集計/病態評価（`src/domain/perio.ts`） |
 | 会計 | 窓口負担計算・領収書/診療明細書プレビュー（標準様式の費用区分） |
-| レセプト | 月次点検（エラー=提出ブロック / 警告=要確認）・✦摘要欄AI文案 → UKE出力（Phase 3で有効化） |
+| レセプト | 月次点検（エラー=提出ブロック / 警告=要確認）・✦摘要欄AI文案 → **算定エンジンから記録条件仕様準拠の UKE ファイルを実生成・ダウンロード**（Shift_JIS） |
 | 経営分析 | 売上推移・✦キャンセル予測・リコール対象＋✦AI文案生成 |
 
 追加画面: **訪問診療**（医療×介護の同時算定シミュレータ・ケアマネ報告書✦AI下書き）/ **文書発行**（管理計画書・紹介状等の✦AI下書き→交付記録）/ **技工**（クラウド指示書・技工士チャット→診療録記録）。
@@ -53,7 +54,7 @@ docs/                設計書・制度要件
 db/schema.sql        PostgreSQL スキーマ（追記専用カルテ・監査ログ・マスタ）
 src/domain/          ドメインモデル（歯式・患者・カルテ記録）
 src/billing/         算定エンジン（マスタ参照・算定ルール）
-src/receipt/         レセプト電算（UKE ファイル）出力の枠組み
+src/receipt/         レセプト電算（UKE）: レコード定義・Shift_JIS・組立・自己点検・返戻再請求
 test/                ユニットテスト（node:test）
 ```
 
@@ -64,8 +65,23 @@ test/                ユニットテスト（node:test）
 ```bash
 npm install     # devDependencies（typescript / @types/node）のみ
 npm run build   # tsc でコンパイル
-npm test        # ビルド + node --test（13 テスト）
+npm test        # ビルド + node --test（126 テスト）
 ```
+
+### 算定サーバ（本番形バックエンド）
+
+公式データ（実点数マスタ・電子点数表の回数/背反/包括・別表Ⅰ摘要欄・傷病名）で構成した
+算定エンジンを HTTP で公開する。カルテ入力 → **実点数の算定・UKE生成・提出前点検・摘要欄候補**
+が返る。Node 標準のみ。
+
+```bash
+npm run serve     # → http://localhost:8787
+# GET  /api/health   稼働確認＋取込件数
+# POST /api/receipt  カルテ入力(JSON) → UKE・点数・点検結果・摘要欄候補(JSON)
+```
+
+> ⚠️ 実提出（オンライン請求）には確認試験・閉域網・証明書が別途必要（コード外）。
+> 本サーバは医院がローカルで「算定→UKE生成→自己点検」を実際に使うための仕組み。
 
 ## 設計上の絶対原則
 
