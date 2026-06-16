@@ -6,7 +6,7 @@ name: Deploy app to GitHub Pages
 
 on:
   push:
-    branches: [claude/japanese-greeting-k6nuva]
+    branches: [main, claude/japanese-greeting-k6nuva]
   workflow_dispatch:
 
 permissions:
