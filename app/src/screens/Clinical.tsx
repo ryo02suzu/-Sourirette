@@ -7,14 +7,13 @@ import { useEffect, useMemo, useState } from "react";
 import { ToothChart } from "../components/ToothChart.js";
 import { AiPanel } from "../components/AiPanel.js";
 import { useToast } from "../components/toast.js";
-import { activeBridges, activePatientDx, activePatientTeeth, type DxItem, type ToothState } from "../data/mock.js";
+import { activeBridges, activePatientDx, activePatientTeeth, type DxItem, type PatientRow, type ToothState } from "../data/mock.js";
 import { auditPrescriptions, calculateDemo, DEMO_CODES, masterName } from "../billing-demo.js";
 import type { AiDraftResult } from "../services/ai.js";
 import { parseTooth, toJapaneseNotation } from "../../../src/domain/tooth.js";
 import type { PerformedProcedure } from "../../../src/domain/types.js";
 
 const TODAY = "2026-06-12";
-const PATIENT_ALLERGIES = ["ペニシリン系アレルギー"];
 
 /** 処置クイック追加（よく使うセット。コード・点数はサンプル） */
 const QUICK_PROCEDURES = ["DEMO-XRAY", "DEMO-PKEN", "DEMO-SCALING", "DEMO-SRP", "DEMO-TBI", "DEMO-RX-AMOX"];
@@ -44,13 +43,18 @@ const STATUS_BUTTONS: { state: ToothState; label: string }[] = [
 const SURFACE_LABELS: [string, string][] = [["M", "近心"], ["D", "遠心"], ["B", "頬側"], ["L", "舌側"], ["O", "咬合面"]];
 
 export function ClinicalScreen({
+  patient,
+  patientNonce,
   perioImport,
   facilityStandards = [],
 }: {
+  patient?: PatientRow;
+  patientNonce?: number;
   perioImport?: { text: string; nonce: number } | null;
   facilityStandards?: string[];
 }) {
   const toast = useToast();
+  const patientAllergies = (patient?.notes ?? ["ペニシリン系アレルギー"]).filter((n) => n.includes("アレルギー"));
   const [selectedTeeth, setSelectedTeeth] = useState<string[]>([]);
   const [teethState, setTeethState] = useState<Record<string, ToothState>>(activePatientTeeth);
   /** 歯面単位の所見（fdi → M/D/B/L/O） */
@@ -78,6 +82,23 @@ export function ClinicalScreen({
     });
     setSelectedTeeth([]);
   };
+
+  // 患者が切り替わったら（予約・一覧からカルテを開く）カルテ内容をその患者にリセット。
+  // デモの詳細データ（歯式・傷病名）は田中花子(p2)のみ。他患者は白紙から開始する。
+  useEffect(() => {
+    if (patientNonce === undefined) return;
+    const isDemo = patient?.id === "p2";
+    setTeethState(isDemo ? activePatientTeeth : {});
+    setSurfaces(isDemo ? { "16": ["D"] } : {});
+    setDxList(isDemo ? activePatientDx : []);
+    setSoap({ S: "", O: "", A: "", P: "" });
+    setProcedures([{ procedureCode: DEMO_CODES.firstVisit, name: "初診料", quantity: 1 }]);
+    setAiDraftFields(new Set());
+    setSelectedTeeth([]);
+    setFinalized(false);
+    setHash(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [patientNonce]);
 
   // P検画面からの転記: O欄に検査サマリを追記し、歯周基本検査を算定に追加
   useEffect(() => {
@@ -164,8 +185,8 @@ export function ClinicalScreen({
       facilityStandards,
     });
     // 処方監査（薬剤の禁忌チェック）は算定とは独立のセーフティ層として合流
-    return { ...result, issues: [...result.issues, ...auditPrescriptions(procedures, PATIENT_ALLERGIES)] };
-  }, [procedures, dxList, facilityStandards]);
+    return { ...result, issues: [...result.issues, ...auditPrescriptions(procedures, patientAllergies)] };
+  }, [procedures, dxList, facilityStandards, patientAllergies]);
 
   const hasError = calc.issues.some((i) => i.severity === "error");
 
@@ -192,15 +213,22 @@ export function ClinicalScreen({
   return (
     <div>
       <div className="patient-banner">
-        <div className="avatar">田中</div>
+        <div className="avatar">{(patient?.name ?? "田中 花子").slice(0, 1)}</div>
         <div>
-          <div className="pname">田中 花子 <span className="muted" style={{ fontWeight: 500 }}>タナカ ハナコ</span></div>
-          <div className="meta">45歳 女性 ・ カルテ番号 000482 ・ 社保 家族（3割） ・ 初診</div>
+          <div className="pname">
+            {patient?.name ?? "田中 花子"} <span className="muted" style={{ fontWeight: 500 }}>{patient?.kana ?? "タナカ ハナコ"}</span>
+          </div>
+          <div className="meta">
+            {patient
+              ? `${patient.age}歳 ${patient.sex === "F" ? "女性" : "男性"} ・ カルテ番号 ${patient.chartNo} ・ ${patient.insurance}`
+              : "45歳 女性 ・ カルテ番号 000482 ・ 社保 家族（3割）"}
+          </div>
         </div>
         <div className="alerts">
           <span className="chip ok">オン資 確認済</span>
-          <span className="chip warn">ペニシリン系アレルギー</span>
-          <span className="chip">高血圧（服薬中）</span>
+          {(patient?.notes ?? ["ペニシリン系アレルギー", "高血圧（服薬中）"]).map((n) => (
+            <span key={n} className={`chip ${n.includes("アレルギー") ? "warn" : ""}`}>{n}</span>
+          ))}
         </div>
       </div>
 

@@ -6,7 +6,7 @@ export function PatientsScreen({
   onOpenChart,
   focus,
 }: {
-  onOpenChart(): void;
+  onOpenChart(id?: string): void;
   focus?: { id: string; nonce: number } | null;
 }) {
   const [query, setQuery] = useState("");
@@ -73,7 +73,7 @@ export function PatientsScreen({
           <div className="card">
             <div className="card-head">
               <h2>{active.name}（{active.age}歳・{active.sex === "F" ? "女性" : "男性"}）</h2>
-              <button type="button" className="btn sm primary" style={{ marginLeft: "auto" }} onClick={onOpenChart}>カルテを開く</button>
+              <button type="button" className="btn sm primary" style={{ marginLeft: "auto" }} onClick={() => onOpenChart(active.id)}>カルテを開く</button>
             </div>
             <div className="card-body">
               <div className="pay-row"><span>カルテ番号</span><span className="v">{active.chartNo}</span></div>
